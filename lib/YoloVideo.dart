@@ -121,10 +121,13 @@ class _YoloVideoState extends State<YoloVideo> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        AspectRatio(
-          aspectRatio: controller.value.aspectRatio,
-          child: CameraPreview(
-            controller,
+        RotatedBox(
+          quarterTurns: 1, // rotate the display 90 degrees clockwise
+          child: AspectRatio(
+            aspectRatio: controller.value.aspectRatio,
+            child: CameraPreview(
+              controller,
+            ),
           ),
         ),
         ...displayBoxesAroundRecognizedObjects(size),

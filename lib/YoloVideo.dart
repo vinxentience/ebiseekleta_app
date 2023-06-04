@@ -60,6 +60,9 @@ class _YoloVideoState extends State<YoloVideo> {
           isDetecting = false;
           yoloResults = [];
         });
+
+        // TODO: make dynamic orientation lock, in case the user wants to landscape right
+        controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
       });
     });
 

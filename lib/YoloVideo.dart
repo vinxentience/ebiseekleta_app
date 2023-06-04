@@ -105,13 +105,15 @@ class _YoloVideoState extends State<YoloVideo> {
     final Size size = MediaQuery.of(context).size;
     if (!isLoaded) {
       return Scaffold(
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: const [
-            Text("Model not loaded, waiting for it"),
-            CircularProgressIndicator(),
-          ],
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: const [
+              Text("Model not loaded, waiting for it"),
+              CircularProgressIndicator(),
+            ],
+          ),
         ),
       );
     }
@@ -126,7 +128,7 @@ class _YoloVideoState extends State<YoloVideo> {
         ),
         ...displayBoxesAroundRecognizedObjects(size),
         Positioned(
-          bottom: 75,
+          bottom: 40,
           width: MediaQuery.of(context).size.width,
           child: Container(
             height: 80,
@@ -166,7 +168,7 @@ class _YoloVideoState extends State<YoloVideo> {
   Future<void> loadYoloModel() async {
     await vision.loadYoloModel(
         labels: 'assets/trafficlabels.txt',
-        modelPath: 'assets/traffic.tflite',
+        modelPath: 'assets/traffic-yolov8.tflite',
         modelVersion: "yolov8",
         numThreads: 2,
         useGpu: true);
@@ -180,9 +182,10 @@ class _YoloVideoState extends State<YoloVideo> {
         bytesList: cameraImage.planes.map((plane) => plane.bytes).toList(),
         imageHeight: cameraImage.height,
         imageWidth: cameraImage.width,
-        iouThreshold: 0.4,
-        confThreshold: 0.4,
+        iouThreshold: 0.5,
+        confThreshold: 0.5,
         classThreshold: 0.5);
+
     if (result.isNotEmpty) {
       if (mounted) {
         setState(() {

@@ -13,6 +13,7 @@ main() async {
   DartPluginRegistrant.ensureInitialized();
   runApp(
     const MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: MyApp(),
     ),
   );
@@ -97,7 +98,6 @@ class _MyAppState extends State<MyApp> {
       return const YoloVideo();
     }
     if (option == Options.home) {
-      dispose();
       return const Center(child: Text("Choose Task"));
     }
     return const Center(child: Text("Choose Task"));

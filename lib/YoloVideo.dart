@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/src/widgets/placeholder.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
@@ -60,6 +61,9 @@ class _YoloVideoState extends State<YoloVideo> {
           isDetecting = false;
           yoloResults = [];
         });
+
+        // TODO: make dynamic orientation lock, in case the user wants to landscape right
+        controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
       });
     });
 
@@ -120,10 +124,13 @@ class _YoloVideoState extends State<YoloVideo> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        AspectRatio(
-          aspectRatio: controller.value.aspectRatio,
-          child: CameraPreview(
-            controller,
+        RotatedBox(
+          quarterTurns: 1, // rotate the display 90 degrees clockwise
+          child: AspectRatio(
+            aspectRatio: controller.value.aspectRatio,
+            child: CameraPreview(
+              controller,
+            ),
           ),
         ),
         ...displayBoxesAroundRecognizedObjects(size),

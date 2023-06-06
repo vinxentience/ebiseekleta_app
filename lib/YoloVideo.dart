@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:camera/camera.dart';
@@ -12,6 +13,13 @@ import 'package:sensors_plus/sensors_plus.dart';
 enum Options { none, home, frame, vision }
 
 late List<CameraDescription> cameras;
+double x = 0, y = 0, z = 0;
+bool isTitled = false;
+bool isTooClose = false;
+//DISTANCE CONSTANTS
+const double KNOWN_DISTANCE = 45.0;
+const double PERSON_WIDTH = 16.0;
+const double MOBILE_WIDTH = 3.0;
 
 class YoloVideo extends StatefulWidget {
   const YoloVideo({Key? key}) : super(key: key);
@@ -21,21 +29,13 @@ class YoloVideo extends StatefulWidget {
 }
 
 //Distance Estimation Function
-double getFocalLength(width_in_rf_image, measured_distance, real_width) {
-  double flength = (width_in_rf_image * measured_distance) / real_width;
-  return flength;
-}
-
-double distance_finder(focal_length, real_face_width, face_width_in_frame) {
-  double distance = (real_face_width * focal_length) / face_width_in_frame;
-  return distance;
+double getObjectPxPercentage(objHeight, objWidth, camHeight, camWidth) {
+  double objectPixels = (objHeight * objWidth);
+  final percentagePx = (objectPixels / (camHeight * camWidth)) * 100.0;
+  return percentagePx;
 }
 
 class _YoloVideoState extends State<YoloVideo> {
-  //gyroscope
-  List<double>? _gyroscopeValues;
-  final _streamSubscriptions = <StreamSubscription<dynamic>>[];
-
   //Distance Estimation
   late CameraController controller;
   late FlutterVision vision;
@@ -47,47 +47,39 @@ class _YoloVideoState extends State<YoloVideo> {
   @override
   void initState() {
     super.initState();
-    init();
+    initCamera();
+    initGyro();
   }
 
-  init() async {
+  initCamera() async {
     cameras = await availableCameras();
     vision = FlutterVision();
     controller = CameraController(cameras[0], ResolutionPreset.low);
     controller.initialize().then((value) {
       loadYoloModel().then((value) {
-        setState(() {
-          isLoaded = true;
-          isDetecting = false;
-          yoloResults = [];
-        });
-
-        // TODO: make dynamic orientation lock, in case the user wants to landscape right
-        controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
+        if (mounted) {
+          setState(() {
+            isLoaded = true;
+            isDetecting = false;
+            yoloResults = [];
+          });
+        }
       });
     });
+  }
 
-    _streamSubscriptions.add(
-      gyroscopeEvents.listen(
-        (GyroscopeEvent event) {
-          setState(() {
-            _gyroscopeValues = <double>[event.x, event.y, event.z];
-          });
-        },
-        onError: (e) {
-          showDialog(
-              context: context,
-              builder: (context) {
-                return const AlertDialog(
-                  title: Text("Sensor Not Found"),
-                  content: Text(
-                      "It seems that your device doesn't support User Accelerometer Sensor"),
-                );
-              });
-        },
-        cancelOnError: true,
-      ),
-    );
+  initGyro() async {
+    accelerometerEvents.listen((AccelerometerEvent event) {
+      x = event.x;
+      y = event.y;
+      z = event.z;
+      if ((x > 7 && x < 11) && (y > -3 && y < 1) && (z > -2 && z < 2)) {
+        isTitled = false;
+      } else {
+        isTitled = true;
+      }
+      setState(() {});
+    });
   }
 
   @override
@@ -95,17 +87,10 @@ class _YoloVideoState extends State<YoloVideo> {
     super.dispose();
     controller.dispose();
     await vision.closeYoloModel();
-    for (final subscription in _streamSubscriptions) {
-      subscription.cancel();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    //gyroscope
-    final gyroscope =
-        _gyroscopeValues?.map((double v) => v.toStringAsFixed(1)).toList();
-
     final Size size = MediaQuery.of(context).size;
     if (!isLoaded) {
       return Scaffold(
@@ -124,18 +109,15 @@ class _YoloVideoState extends State<YoloVideo> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        RotatedBox(
-          quarterTurns: 1, // rotate the display 90 degrees clockwise
-          child: AspectRatio(
-            aspectRatio: controller.value.aspectRatio,
-            child: CameraPreview(
-              controller,
-            ),
+        AspectRatio(
+          aspectRatio: controller.value.aspectRatio,
+          child: CameraPreview(
+            controller,
           ),
         ),
         ...displayBoxesAroundRecognizedObjects(size),
         Positioned(
-          bottom: 40,
+          bottom: 75,
           width: MediaQuery.of(context).size.width,
           child: Container(
             height: 80,
@@ -168,6 +150,26 @@ class _YoloVideoState extends State<YoloVideo> {
                   ),
           ),
         ),
+        RotatedBox(
+            quarterTurns: 1,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                isTitled
+                    ? const Text("titled - warning",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 18.0,
+                        ))
+                    : const Text(
+                        "normal",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.0,
+                        ),
+                      ),
+              ],
+            )),
       ],
     );
   }
@@ -175,7 +177,7 @@ class _YoloVideoState extends State<YoloVideo> {
   Future<void> loadYoloModel() async {
     await vision.loadYoloModel(
         labels: 'assets/trafficlabels.txt',
-        modelPath: 'assets/traffic-yolov8.tflite',
+        modelPath: 'assets/traffic-yolov8n.tflite',
         modelVersion: "yolov8",
         numThreads: 2,
         useGpu: true);
@@ -192,7 +194,6 @@ class _YoloVideoState extends State<YoloVideo> {
         iouThreshold: 0.5,
         confThreshold: 0.5,
         classThreshold: 0.5);
-
     if (result.isNotEmpty) {
       if (mounted) {
         setState(() {
@@ -226,44 +227,68 @@ class _YoloVideoState extends State<YoloVideo> {
 
   List<Widget> displayBoxesAroundRecognizedObjects(Size screen) {
     //Distance Estimation
-
     if (yoloResults.isEmpty) return [];
+
     double factorX = screen.width / (cameraImage?.height ?? 1);
     double factorY = screen.height / (cameraImage?.width ?? 1);
 
     Color colorPick = const Color.fromARGB(255, 50, 233, 30);
-
     return yoloResults.map((result) {
-      double focal_length_found = getFocalLength(
-          (result["box"][2] - result["box"][0]) * factorX, 50, 10);
-      double distance = distance_finder(focal_length_found, 10,
-          (result["box"][2] - result["box"][0]) * factorX);
+      double objheight = result["box"][3] - result["box"][1];
+      double objwidth = result["box"][2] - result["box"][0];
+      int? camheight = cameraImage?.height;
+      int? camwidth = cameraImage?.width;
+      double percentage =
+          getObjectPxPercentage(objheight, objwidth, camheight, camwidth);
+      String str = percentage.toStringAsFixed(2);
+
+      if (percentage > 40) {
+        isTooClose = true;
+      } else {
+        isTooClose = false;
+      }
+      // double focalPerson = getFocalLength(KNOWN_DISTANCE, PERSON_WIDTH,
+      //     (result["box"][2] - result["box"][0]) * factorX);
+      // double distance = getDistance(focalPerson, PERSON_WIDTH,
+      //     (result["box"][2] - result["box"][0]) * factorX);
+
+      //APPROXIMATE
+      // double mid_x = (result["box"][2] + result["box"][0]) / 2;
+      // double mid_y = ((result["box"][3] + result["box"][1])) / 2;
+      // num  = ((result["box"][2] - result["box"][0]) * factorX) / 100;
+      //num apxDistance = pow((((result["box"][2] - result["box"][0]))), 4);
+      //num apxDistance = pow(1 - ((result["box"][2] - result["box"][0]) * factorX), 4.0);
+
       return Positioned(
         left: result["box"][0] * factorX,
         top: result["box"][1] * factorY,
-        width: (result["box"][2] - result["box"][0]) * factorX,
-        height: (result["box"][3] - result["box"][1]) * factorY,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-            border: Border.all(color: Colors.pink, width: 2.0),
-          ),
-          child: Text(
-            "${result['tag']} ${(result['box'][4] * 100).toStringAsFixed(0)}%",
-            style: TextStyle(
-              background: Paint()..color = colorPick,
-              color: Colors.white,
-              fontSize: 18.0,
+        width: objwidth * factorX,
+        height: objheight * factorY,
+        child: RotatedBox(
+          quarterTurns: 1,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+              border: Border.all(color: Colors.pink, width: 2.0),
             ),
+            child: isTooClose
+                ? Text(
+                    "${result['tag']} ${(result['box'][4] * 100).toStringAsFixed(0)}% : $str% WARNING TOO CLOSE",
+                    style: TextStyle(
+                      background: Paint()..color = colorPick,
+                      color: Colors.red,
+                      fontSize: 18.0,
+                    ),
+                  )
+                : Text(
+                    "${result['tag']} ${(result['box'][4] * 100).toStringAsFixed(0)}% : $str%",
+                    style: TextStyle(
+                      background: Paint()..color = colorPick,
+                      color: Colors.white,
+                      fontSize: 18.0,
+                    ),
+                  ),
           ),
-          // Text(
-          //   "$distance cm",
-          //   style: TextStyle(
-          //     background: Paint()..color = colorPick,
-          //     color: Colors.white,
-          //     fontSize: 18.0,
-          //   ),
-          // ),
         ),
       );
     }).toList();

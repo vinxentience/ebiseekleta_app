@@ -39,6 +39,9 @@ dependencies:
   flutter_vision: ^1.1.1
   flutter_speed_dial: ^7.0.0
   camera: ^0.10.5+2
+  vibration: ^1.7.7
+  audioplayers: ^4.1.0
+  geolocator: ^9.0.2
 
 dev_dependencies:
   flutter_test:

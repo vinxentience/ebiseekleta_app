@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/src/widgets/placeholder.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision }
 
@@ -16,6 +18,7 @@ late List<CameraDescription> cameras;
 double x = 0, y = 0, z = 0;
 bool isTitled = false;
 bool isTooClose = false;
+
 //DISTANCE CONSTANTS
 const double KNOWN_DISTANCE = 45.0;
 const double PERSON_WIDTH = 16.0;
@@ -36,19 +39,20 @@ double getObjectPxPercentage(objHeight, objWidth, camHeight, camWidth) {
 }
 
 class _YoloVideoState extends State<YoloVideo> {
-  //Distance Estimation
   late CameraController controller;
   late FlutterVision vision;
   late List<Map<String, dynamic>> yoloResults;
   CameraImage? cameraImage;
   bool isLoaded = false;
   bool isDetecting = false;
+  Timer? _timer;
+  int _start = 10;
+  bool isFunctionExecuted = false;
 
   @override
   void initState() {
     super.initState();
     initCamera();
-    initGyro();
   }
 
   initCamera() async {
@@ -68,23 +72,61 @@ class _YoloVideoState extends State<YoloVideo> {
     });
   }
 
-  initGyro() async {
-    accelerometerEvents.listen((AccelerometerEvent event) {
+  initGyro() {
+    accelerometerEvents.listen((AccelerometerEvent event) async {
       x = event.x;
       y = event.y;
       z = event.z;
-      if ((x > 7 && x < 11) && (y > -3 && y < 1) && (z > -2 && z < 2)) {
-        isTitled = false;
+
+      if (isDetecting) {
+        if (((x > 7 && x < 11) && (y > -3 && y < 1) && (z > -2 && z < 2))) {
+          _start = 10;
+          isTitled = false;
+          Vibration.cancel();
+        } else {
+          isTitled = true;
+          Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
+          if (!isFunctionExecuted) {
+            startTimer();
+            isFunctionExecuted = true;
+          }
+        }
       } else {
-        isTitled = true;
+        _start = 10;
+        Vibration.cancel();
       }
+
       setState(() {});
     });
+  }
+
+  Future<void> playDangerAudio() async {
+    final player = AudioPlayer();
+    await player.play(AssetSource('danger.mp3'));
+  }
+
+  void startTimer() {
+    const oneSec = Duration(seconds: 1);
+    _timer = Timer.periodic(
+      oneSec,
+      (Timer timer) {
+        if (_start == 0) {
+          setState(() {
+            //timer.cancel();
+          });
+        } else {
+          setState(() {
+            _start--;
+          });
+        }
+      },
+    );
   }
 
   @override
   void dispose() async {
     super.dispose();
+    _timer?.cancel();
     controller.dispose();
     await vision.closeYoloModel();
   }
@@ -106,6 +148,7 @@ class _YoloVideoState extends State<YoloVideo> {
         ),
       );
     }
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -128,48 +171,68 @@ class _YoloVideoState extends State<YoloVideo> {
                   width: 5, color: Colors.white, style: BorderStyle.solid),
             ),
             child: isDetecting
-                ? IconButton(
-                    onPressed: () async {
-                      stopDetection();
-                    },
-                    icon: const Icon(
-                      Icons.stop,
-                      color: Colors.red,
+                ? RotatedBox(
+                    quarterTurns: 1,
+                    child: IconButton(
+                      onPressed: () async {
+                        stopDetection();
+                      },
+                      icon: const Icon(
+                        Icons.stop,
+                        color: Colors.red,
+                      ),
+                      iconSize: 50,
                     ),
-                    iconSize: 50,
                   )
-                : IconButton(
-                    onPressed: () async {
-                      await startDetection();
-                    },
-                    icon: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
+                : RotatedBox(
+                    quarterTurns: 1,
+                    child: IconButton(
+                      onPressed: () async {
+                        initGyro();
+                        await startDetection();
+                      },
+                      icon: const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                      ),
+                      iconSize: 50,
                     ),
-                    iconSize: 50,
                   ),
           ),
         ),
-        RotatedBox(
-            quarterTurns: 1,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                isTitled
-                    ? const Text("titled - warning",
+        isDetecting
+            ? RotatedBox(
+                quarterTurns: 1,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    isTitled
+                        ? Text("titled - warning : $_start sec",
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 18.0,
+                            ))
+                        : const Text(
+                            "normal",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.0,
+                            ),
+                          ),
+                  ],
+                ))
+            : RotatedBox(
+                quarterTurns: 1,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text("",
                         style: TextStyle(
                           color: Colors.red,
                           fontSize: 18.0,
                         ))
-                    : const Text(
-                        "normal",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18.0,
-                        ),
-                      ),
-              ],
-            )),
+                  ],
+                )),
       ],
     );
   }
@@ -220,13 +283,13 @@ class _YoloVideoState extends State<YoloVideo> {
 
   Future<void> stopDetection() async {
     setState(() {
+      isTitled = false;
       isDetecting = false;
       yoloResults.clear();
     });
   }
 
   List<Widget> displayBoxesAroundRecognizedObjects(Size screen) {
-    //Distance Estimation
     if (yoloResults.isEmpty) return [];
 
     double factorX = screen.width / (cameraImage?.height ?? 1);
@@ -293,4 +356,33 @@ class _YoloVideoState extends State<YoloVideo> {
       );
     }).toList();
   }
+}
+
+showAlertDialog(BuildContext context) {
+  // set up the buttons
+  Widget cancelButton = ElevatedButton(
+    child: Text("Cancel"),
+    onPressed: () {},
+  );
+  Widget continueButton = ElevatedButton(
+    child: Text("Continue"),
+    onPressed: () {},
+  );
+  // set up the AlertDialog
+  AlertDialog alert = AlertDialog(
+    title: Text("AlertDialog"),
+    content:
+        Text("Would you like to continue learning how to use Flutter alerts?"),
+    actions: [
+      cancelButton,
+      continueButton,
+    ],
+  );
+  // show the dialog
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alert;
+    },
+  );
 }

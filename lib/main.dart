@@ -1,11 +1,13 @@
 import 'dart:ui';
 import 'package:camera/camera.dart';
+import 'package:ebiseekleta_app/GeoLocation.dart';
 import 'package:ebiseekleta_app/YoloVideo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:vibration/vibration.dart';
 
-enum Options { none, home, frame, vision }
+enum Options { none, home, frame, vision, location }
 
 late List<CameraDescription> cameras;
 main() async {
@@ -32,10 +34,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.leanBack);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft,
-    ]);
+    Vibration.cancel();
   }
 
   @override
@@ -72,6 +71,19 @@ class _MyAppState extends State<MyApp> {
             },
           ),
           SpeedDialChild(
+            //speed dial child
+            child: const Icon(Icons.gps_fixed),
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            label: 'Geolocation',
+            labelStyle: const TextStyle(fontSize: 18.0),
+            onTap: () {
+              setState(() {
+                option = Options.location;
+              });
+            },
+          ),
+          SpeedDialChild(
             child: const Icon(Icons.home),
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
@@ -94,6 +106,9 @@ class _MyAppState extends State<MyApp> {
     }
     if (option == Options.home) {
       return const Center(child: Text("Choose Task"));
+    }
+    if (option == Options.location) {
+      return const GeoLocation();
     }
     return const Center(child: Text("Choose Task"));
   }

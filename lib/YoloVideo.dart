@@ -3,26 +3,24 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:background_sms/background_sms.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/src/widgets/placeholder.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vision/flutter_vision.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision }
 
+//Camera
 late List<CameraDescription> cameras;
 double x = 0, y = 0, z = 0;
 bool isTitled = false;
 bool isTooClose = false;
-
-//DISTANCE CONSTANTS
-const double KNOWN_DISTANCE = 45.0;
-const double PERSON_WIDTH = 16.0;
-const double MOBILE_WIDTH = 3.0;
 
 class YoloVideo extends StatefulWidget {
   const YoloVideo({Key? key}) : super(key: key);
@@ -48,12 +46,45 @@ class _YoloVideoState extends State<YoloVideo> {
   Timer? _timer;
   int _start = 10;
   bool isFunctionExecuted = false;
-
+  bool isMessageSent = false;
   @override
   void initState() {
     super.initState();
     initCamera();
   }
+
+  _getPermission() async => await [
+        Permission.sms,
+      ].request();
+
+  Future<bool> _isPermissionGranted() async =>
+      await Permission.sms.status.isGranted;
+
+  _sendMessage(String phoneNumber, String message, {int? simSlot}) async {
+    var result = await BackgroundSms.sendMessage(
+        phoneNumber: phoneNumber, message: message, simSlot: simSlot);
+    if (result == SmsStatus.sent) {
+      print("Sent");
+    } else {
+      print("Failed");
+    }
+  }
+
+  void _notifyCloseContact() async {
+    if (await _isPermissionGranted()) {
+      if ((await _supportCustomSim)!) {
+        _sendMessage("09123456", "Cyclist is in trouble send help!",
+            simSlot: 1);
+      } else {
+        _sendMessage("09123456", "Cyclist is in trouble send help!");
+      }
+    } else {
+      _getPermission();
+    }
+  }
+
+  Future<bool?> get _supportCustomSim async =>
+      await BackgroundSms.isSupportCustomSim;
 
   initCamera() async {
     cameras = await availableCameras();
@@ -82,6 +113,7 @@ class _YoloVideoState extends State<YoloVideo> {
         if (((x > 7 && x < 11) && (y > -3 && y < 1) && (z > -2 && z < 2))) {
           _start = 10;
           isTitled = false;
+          isMessageSent = false;
           Vibration.cancel();
         } else {
           isTitled = true;
@@ -93,6 +125,7 @@ class _YoloVideoState extends State<YoloVideo> {
         }
       } else {
         _start = 10;
+        isMessageSent = false;
         Vibration.cancel();
       }
 
@@ -111,6 +144,10 @@ class _YoloVideoState extends State<YoloVideo> {
       oneSec,
       (Timer timer) {
         if (_start == 0) {
+          if (!isMessageSent) {
+            _notifyCloseContact();
+            isMessageSent = true;
+          }
           setState(() {
             //timer.cancel();
           });
@@ -285,6 +322,8 @@ class _YoloVideoState extends State<YoloVideo> {
     setState(() {
       isTitled = false;
       isDetecting = false;
+      isMessageSent = false;
+      _start = 10;
       yoloResults.clear();
     });
   }

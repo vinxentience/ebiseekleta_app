@@ -10,6 +10,7 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/src/widgets/placeholder.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vision/flutter_vision.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:vibration/vibration.dart';
@@ -47,6 +48,8 @@ class _YoloVideoState extends State<YoloVideo> {
   int _start = 10;
   bool isFunctionExecuted = false;
   bool isMessageSent = false;
+  Position? _currentPosition;
+
   @override
   void initState() {
     super.initState();
@@ -70,13 +73,17 @@ class _YoloVideoState extends State<YoloVideo> {
     }
   }
 
-  void _notifyCloseContact() async {
+  _notifyCloseContact() async {
+    String cyclistLocation =
+        "https://www.google.com/maps/?q=${_currentPosition?.latitude},${_currentPosition?.longitude}";
     if (await _isPermissionGranted()) {
       if ((await _supportCustomSim)!) {
-        _sendMessage("09123456", "Cyclist is in trouble send help!",
+        _sendMessage("09123456",
+            "Cyclist is in trouble send help! Location at: $cyclistLocation",
             simSlot: 1);
       } else {
-        _sendMessage("09123456", "Cyclist is in trouble send help!");
+        _sendMessage("09123456",
+            "Cyclist is in trouble send help! Location at: $cyclistLocation");
       }
     } else {
       _getPermission();
@@ -85,6 +92,46 @@ class _YoloVideoState extends State<YoloVideo> {
 
   Future<bool?> get _supportCustomSim async =>
       await BackgroundSms.isSupportCustomSim;
+
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Location services are disabled. Please enable the services')));
+      return false;
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permissions are denied')));
+        return false;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Location permissions are permanently denied, we cannot request permissions.')));
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _getCurrentPosition() async {
+    final hasPermission = await _handleLocationPermission();
+    if (!hasPermission) return;
+    await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
+        .then((Position position) {
+      setState(() => _currentPosition = position);
+    }).catchError((e) {
+      debugPrint(e);
+    });
+  }
 
   initCamera() async {
     cameras = await availableCameras();
@@ -142,10 +189,11 @@ class _YoloVideoState extends State<YoloVideo> {
     const oneSec = Duration(seconds: 1);
     _timer = Timer.periodic(
       oneSec,
-      (Timer timer) {
+      (Timer timer) async {
         if (_start == 0) {
           if (!isMessageSent) {
-            _notifyCloseContact();
+            await _getCurrentPosition();
+            await _notifyCloseContact();
             isMessageSent = true;
           }
           setState(() {

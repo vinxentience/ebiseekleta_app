@@ -150,6 +150,8 @@ class _YoloVideoState extends State<YoloVideo> {
     });
   }
 
+  initEsp32Cam() async {}
+
   initGyro() {
     accelerometerEvents.listen((AccelerometerEvent event) async {
       x = event.x;
@@ -194,6 +196,7 @@ class _YoloVideoState extends State<YoloVideo> {
           if (!isMessageSent) {
             await _getCurrentPosition();
             await _notifyCloseContact();
+            playDangerAudio();
             isMessageSent = true;
           }
           setState(() {

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:ebiseekleta_app/GeoLocation.dart';
+import 'package:ebiseekleta_app/Homescreen.dart';
 import 'package:ebiseekleta_app/YoloVideo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -105,11 +106,23 @@ class _MyAppState extends State<MyApp> {
       return const YoloVideo();
     }
     if (option == Options.home) {
-      return const Center(child: Text("Choose Task"));
+      return const Homepage();
     }
     if (option == Options.location) {
       return const GeoLocation();
     }
-    return const Center(child: Text("Choose Task"));
+    return const Homepage();
   }
+
+  //   _ConnectWebSocket() {
+  //   Future.delayed(Duration(milliseconds: 100)).then((_) {
+  //     Navigator.pushReplacement(
+  //         context,
+  //         MaterialPageRoute(
+  //             builder: (BuildContext context) => MyHomePage(
+  //                   channel:
+  //                       IOWebSocketChannel.connect('ws://192.168.4.1:8888'),
+  //                 )));
+  //   });
+  // }
 }

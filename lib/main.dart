@@ -2,22 +2,31 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:ebiseekleta_app/GeoLocation.dart';
 import 'package:ebiseekleta_app/Homescreen.dart';
+import 'package:ebiseekleta_app/OnboardSetting.dart';
+import 'package:ebiseekleta_app/OnboardingScreen.dart';
+import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/YoloVideo.dart';
+import 'package:ebiseekleta_app/utils/user_preference.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 
-enum Options { none, home, frame, vision, location }
+enum Options { none, home, frame, vision, location, setting }
+
+int? isViewed;
 
 late List<CameraDescription> cameras;
 main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  isViewed = prefs.getInt('onBoard');
   runApp(
-    const MaterialApp(
+    MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MyApp(),
+      home: isViewed != 0 ? OnboardingScreen() : MyApp(),
     ),
   );
 }
@@ -58,6 +67,19 @@ class _MyAppState extends State<MyApp> {
         overlayOpacity: 0.5,
         buttonSize: const Size(56.0, 56.0),
         children: [
+          SpeedDialChild(
+            //speed dial child
+            child: const Icon(Icons.settings),
+            backgroundColor: Colors.amber,
+            foregroundColor: Colors.white,
+            label: 'Settings',
+            labelStyle: const TextStyle(fontSize: 18.0),
+            onTap: () {
+              setState(() {
+                option = Options.setting;
+              });
+            },
+          ),
           SpeedDialChild(
             //speed dial child
             child: const Icon(Icons.video_call),
@@ -104,6 +126,9 @@ class _MyAppState extends State<MyApp> {
   Widget task(Options option) {
     if (option == Options.frame) {
       return const YoloVideo();
+    }
+    if (option == Options.setting) {
+      return const SetttingScreen();
     }
     if (option == Options.home) {
       return const Homepage();

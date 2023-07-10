@@ -37,9 +37,12 @@ class _HomepageState extends State<Homepage> {
   late StreamSubscription<ConnectivityResult> _connectivitySubscription;
   final StreamController<bool> _gpsStatus = StreamController<bool>();
   final StreamController<String> _wifiNameStatus = StreamController<String>();
+  final StreamController<bool> _internetStatus = StreamController<bool>();
   final NetworkInfo _networkInfo = NetworkInfo();
   bool _wifiStatus = false;
   bool isGPSenabled = false;
+  bool isInternetConnected = false;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -47,7 +50,7 @@ class _HomepageState extends State<Homepage> {
 
     _initNetworkInfo();
     _checkGps();
-
+    checkConnection();
     initConnectivity();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
@@ -57,6 +60,7 @@ class _HomepageState extends State<Homepage> {
   void dispose() {
     _connectivitySubscription.cancel();
     _gpsStatus.close();
+    _internetStatus.close();
     _wifiNameStatus.close();
     super.dispose();
   }
@@ -159,6 +163,23 @@ class _HomepageState extends State<Homepage> {
                 title: Text("GPS enabled: $isGPSenabled"),
               );
             }),
+        StreamBuilder(
+            initialData: false,
+            stream: _internetStatus.stream,
+            builder: (context, snapshot) {
+              return ListTile(
+                leading: isInternetConnected
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      )
+                    : const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                      ),
+                title: Text("Internet Connection: $isInternetConnected"),
+              );
+            }),
       ],
     ));
   }
@@ -168,18 +189,30 @@ class _HomepageState extends State<Homepage> {
       if (!_gpsStatus.isClosed) {
         isGPSenabled = await Geolocator.isLocationServiceEnabled();
         _gpsStatus.sink.add(isGPSenabled);
+      } else {
+        _gpsStatus.close();
       }
     });
   }
 
-  Future<void> _isConnected() async {
-    if (_connectionStatus == ConnectivityResult.wifi) {
-      _wifiStatus = true;
-      print("yes");
-    } else {
-      _wifiStatus = false;
-      print("no");
-    }
+  Future<void> checkConnection() async {
+    Timer.periodic(Duration(milliseconds: 500), (timer) async {
+      try {
+        var result = await InternetAddress.lookup('google.com');
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          isInternetConnected = true;
+          _internetStatus.add(isInternetConnected);
+        } else {
+          isInternetConnected = false;
+          _internetStatus.add(isInternetConnected);
+          _internetStatus.close();
+        }
+      } on SocketException catch (_) {
+        isInternetConnected = false;
+        _internetStatus.add(isInternetConnected);
+        _internetStatus.close();
+      }
+    });
   }
 
   Future<void> _initNetworkInfo() async {
@@ -274,7 +307,7 @@ class _HomepageState extends State<Homepage> {
         if (wifiName != null) {
           _wifiNameStatus.sink.add(wifiName!);
         } else {
-          _wifiNameStatus.sink.add("Unknown");
+          _wifiNameStatus.close();
         }
       }
     });

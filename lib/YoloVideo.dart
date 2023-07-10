@@ -13,6 +13,7 @@ import 'package:flutter_vision/flutter_vision.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision }
@@ -53,6 +54,7 @@ class _YoloVideoState extends State<YoloVideo> {
   @override
   void initState() {
     super.initState();
+
     initCamera();
   }
 
@@ -74,17 +76,29 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   _notifyCloseContact() async {
+    final SharedPreferences sharedPreferences =
+        await SharedPreferences.getInstance();
     String cyclistLocation =
         "https://www.google.com/maps/?q=${_currentPosition?.latitude},${_currentPosition?.longitude}";
+
+    var obtainedName = sharedPreferences.getString('username');
+    var obtainedNumbers = sharedPreferences.getStringList('phonenumber');
+
     if (await _isPermissionGranted()) {
       if ((await _supportCustomSim)!) {
-        _sendMessage("09123456",
-            "Cyclist is in trouble send help! Location at: $cyclistLocation",
-            simSlot: 1);
+        obtainedNumbers?.forEach((item) {
+          _sendMessage(item,
+              "$obtainedName is in trouble need help! Location at: $cyclistLocation",
+              simSlot: 1);
+        });
       } else {
-        _sendMessage("09123456",
-            "Cyclist is in trouble send help! Location at: $cyclistLocation");
+        obtainedNumbers?.forEach((item) {
+          _sendMessage(item,
+              "$obtainedName is in trouble need help! Location at: $cyclistLocation",
+              simSlot: 2);
+        });
       }
+      isMessageSent = true;
     } else {
       _getPermission();
     }
@@ -197,15 +211,19 @@ class _YoloVideoState extends State<YoloVideo> {
             await _getCurrentPosition();
             await _notifyCloseContact();
             playDangerAudio();
-            isMessageSent = true;
           }
           setState(() {
-            //timer.cancel();
+            timer.cancel();
           });
         } else {
-          setState(() {
-            _start--;
-          });
+          if (timer.isActive) {
+            setState(() {
+              _start--;
+            });
+          } else {
+            _start = 10;
+            startTimer();
+          }
         }
       },
     );
@@ -213,9 +231,9 @@ class _YoloVideoState extends State<YoloVideo> {
 
   @override
   void dispose() async {
-    super.dispose();
     _timer?.cancel();
     controller.dispose();
+    super.dispose();
     await vision.closeYoloModel();
   }
 
@@ -276,8 +294,12 @@ class _YoloVideoState extends State<YoloVideo> {
                     quarterTurns: 1,
                     child: IconButton(
                       onPressed: () async {
-                        initGyro();
-                        await startDetection();
+                        if (await _isPermissionGranted()) {
+                          initGyro();
+                          await startDetection();
+                        } else {
+                          _getPermission();
+                        }
                       },
                       icon: const Icon(
                         Icons.play_arrow,
@@ -371,6 +393,7 @@ class _YoloVideoState extends State<YoloVideo> {
 
   Future<void> stopDetection() async {
     setState(() {
+      _timer?.cancel();
       isTitled = false;
       isDetecting = false;
       isMessageSent = false;

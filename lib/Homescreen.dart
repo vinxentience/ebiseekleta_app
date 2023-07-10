@@ -24,10 +24,19 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   ConnectivityResult _connectionStatus = ConnectivityResult.none;
+  String? wifiName,
+      wifiBSSID,
+      wifiIPv4,
+      wifiIPv6,
+      wifiGatewayIP,
+      wifiBroadcast,
+      wifiSubmask;
   String _networkInfoStatus = 'Unknown';
   String _WifiSSID = "";
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  final StreamController<bool> _gpsStatus = StreamController<bool>();
+  final StreamController<String> _wifiNameStatus = StreamController<String>();
   final NetworkInfo _networkInfo = NetworkInfo();
   bool _wifiStatus = false;
   bool isGPSenabled = false;
@@ -35,8 +44,10 @@ class _HomepageState extends State<Homepage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+
     _initNetworkInfo();
     _checkGps();
+
     initConnectivity();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
@@ -45,6 +56,8 @@ class _HomepageState extends State<Homepage> {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _gpsStatus.close();
+    _wifiNameStatus.close();
     super.dispose();
   }
 
@@ -112,26 +125,51 @@ class _HomepageState extends State<Homepage> {
           ),
           title: Text('Connection Status: ${_connectionStatus.toString()}'),
         ),
-        ListTile(
-          leading: const Icon(
-            Icons.check,
-            color: Colors.green,
-          ),
-          title: Text("Connected To: $_WifiSSID"),
-        ),
-        ListTile(
-          leading: const Icon(
-            Icons.check,
-            color: Colors.green,
-          ),
-          title: Text("GPS enabled: $isGPSenabled"),
-        )
+        StreamBuilder(
+            initialData: "",
+            stream: _wifiNameStatus.stream,
+            builder: (context, snapshot) {
+              return ListTile(
+                leading: wifiName != null
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      )
+                    : const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                      ),
+                title: Text("Connected To: $wifiName"),
+              );
+            }),
+        StreamBuilder(
+            initialData: false,
+            stream: _gpsStatus.stream,
+            builder: (context, snapshot) {
+              return ListTile(
+                leading: isGPSenabled
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      )
+                    : const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                      ),
+                title: Text("GPS enabled: $isGPSenabled"),
+              );
+            }),
       ],
     ));
   }
 
-  _checkGps() async {
-    isGPSenabled = await Geolocator.isLocationServiceEnabled();
+  void _checkGps() async {
+    Timer.periodic(Duration(milliseconds: 500), (timer) async {
+      if (!_gpsStatus.isClosed) {
+        isGPSenabled = await Geolocator.isLocationServiceEnabled();
+        _gpsStatus.sink.add(isGPSenabled);
+      }
+    });
   }
 
   Future<void> _isConnected() async {
@@ -145,110 +183,100 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _initNetworkInfo() async {
-    String? wifiName,
-        wifiBSSID,
-        wifiIPv4,
-        wifiIPv6,
-        wifiGatewayIP,
-        wifiBroadcast,
-        wifiSubmask;
-
-    try {
-      if (!kIsWeb && Platform.isIOS) {
-        // ignore: deprecated_member_use
-        var status = await _networkInfo.getLocationServiceAuthorization();
-        if (status == LocationAuthorizationStatus.notDetermined) {
+    Timer.periodic(Duration(milliseconds: 500), (timer) async {
+      try {
+        if (!kIsWeb && Platform.isIOS) {
           // ignore: deprecated_member_use
-          status = await _networkInfo.requestLocationServiceAuthorization();
-        }
-        if (status == LocationAuthorizationStatus.authorizedAlways ||
-            status == LocationAuthorizationStatus.authorizedWhenInUse) {
-          wifiName = await _networkInfo.getWifiName();
+          var status = await _networkInfo.getLocationServiceAuthorization();
+          if (status == LocationAuthorizationStatus.notDetermined) {
+            // ignore: deprecated_member_use
+            status = await _networkInfo.requestLocationServiceAuthorization();
+          }
+          if (status == LocationAuthorizationStatus.authorizedAlways ||
+              status == LocationAuthorizationStatus.authorizedWhenInUse) {
+            wifiName = await _networkInfo.getWifiName();
+          } else {
+            wifiName = await _networkInfo.getWifiName();
+          }
         } else {
           wifiName = await _networkInfo.getWifiName();
         }
-      } else {
-        wifiName = await _networkInfo.getWifiName();
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi Name', error: e);
+        wifiName = 'Failed to get Wifi Name';
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi Name', error: e);
-      wifiName = 'Failed to get Wifi Name';
-    }
 
-    try {
-      if (!kIsWeb && Platform.isIOS) {
-        // ignore: deprecated_member_use
-        var status = await _networkInfo.getLocationServiceAuthorization();
-        if (status == LocationAuthorizationStatus.notDetermined) {
+      try {
+        if (!kIsWeb && Platform.isIOS) {
           // ignore: deprecated_member_use
-          status = await _networkInfo.requestLocationServiceAuthorization();
-        }
-        if (status == LocationAuthorizationStatus.authorizedAlways ||
-            status == LocationAuthorizationStatus.authorizedWhenInUse) {
-          wifiBSSID = await _networkInfo.getWifiBSSID();
+          var status = await _networkInfo.getLocationServiceAuthorization();
+          if (status == LocationAuthorizationStatus.notDetermined) {
+            // ignore: deprecated_member_use
+            status = await _networkInfo.requestLocationServiceAuthorization();
+          }
+          if (status == LocationAuthorizationStatus.authorizedAlways ||
+              status == LocationAuthorizationStatus.authorizedWhenInUse) {
+            wifiBSSID = await _networkInfo.getWifiBSSID();
+          } else {
+            wifiBSSID = await _networkInfo.getWifiBSSID();
+          }
         } else {
           wifiBSSID = await _networkInfo.getWifiBSSID();
         }
-      } else {
-        wifiBSSID = await _networkInfo.getWifiBSSID();
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi BSSID', error: e);
+        wifiBSSID = 'Failed to get Wifi BSSID';
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi BSSID', error: e);
-      wifiBSSID = 'Failed to get Wifi BSSID';
-    }
 
-    try {
-      wifiIPv4 = await _networkInfo.getWifiIP();
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi IPv4', error: e);
-      wifiIPv4 = 'Failed to get Wifi IPv4';
-    }
-
-    try {
-      if (!Platform.isWindows) {
-        wifiIPv6 = await _networkInfo.getWifiIPv6();
+      try {
+        wifiIPv4 = await _networkInfo.getWifiIP();
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi IPv4', error: e);
+        wifiIPv4 = 'Failed to get Wifi IPv4';
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi IPv6', error: e);
-      wifiIPv6 = 'Failed to get Wifi IPv6';
-    }
 
-    try {
-      if (!Platform.isWindows) {
-        wifiSubmask = await _networkInfo.getWifiSubmask();
+      try {
+        if (!Platform.isWindows) {
+          wifiIPv6 = await _networkInfo.getWifiIPv6();
+        }
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi IPv6', error: e);
+        wifiIPv6 = 'Failed to get Wifi IPv6';
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi submask address', error: e);
-      wifiSubmask = 'Failed to get Wifi submask address';
-    }
 
-    try {
-      if (!Platform.isWindows) {
-        wifiBroadcast = await _networkInfo.getWifiBroadcast();
+      try {
+        if (!Platform.isWindows) {
+          wifiSubmask = await _networkInfo.getWifiSubmask();
+        }
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi submask address', error: e);
+        wifiSubmask = 'Failed to get Wifi submask address';
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi broadcast', error: e);
-      wifiBroadcast = 'Failed to get Wifi broadcast';
-    }
 
-    try {
-      if (!Platform.isWindows) {
-        wifiGatewayIP = await _networkInfo.getWifiGatewayIP();
+      try {
+        if (!Platform.isWindows) {
+          wifiBroadcast = await _networkInfo.getWifiBroadcast();
+        }
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi broadcast', error: e);
+        wifiBroadcast = 'Failed to get Wifi broadcast';
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi gateway address', error: e);
-      wifiGatewayIP = 'Failed to get Wifi gateway address';
-    }
 
-    setState(() {
-      _WifiSSID = wifiName!;
-      _networkInfoStatus = 'Wifi Name: $wifiName\n'
-          'Wifi BSSID: $wifiBSSID\n'
-          'Wifi IPv4: $wifiIPv4\n'
-          'Wifi IPv6: $wifiIPv6\n'
-          'Wifi Broadcast: $wifiBroadcast\n'
-          'Wifi Gateway: $wifiGatewayIP\n'
-          'Wifi Submask: $wifiSubmask\n';
+      try {
+        if (!Platform.isWindows) {
+          wifiGatewayIP = await _networkInfo.getWifiGatewayIP();
+        }
+      } on PlatformException catch (e) {
+        developer.log('Failed to get Wifi gateway address', error: e);
+        wifiGatewayIP = 'Failed to get Wifi gateway address';
+      }
+      if (!_wifiNameStatus.isClosed) {
+        if (wifiName != null) {
+          _wifiNameStatus.sink.add(wifiName!);
+        } else {
+          _wifiNameStatus.sink.add("Unknown");
+        }
+      }
     });
   }
 }

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ebiseekleta_app/utils/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/src/widgets/placeholder.dart';

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:camera/camera.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ebiseekleta_app/GeoLocation.dart';
 import 'package:ebiseekleta_app/Homescreen.dart';
@@ -15,10 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'dart:developer' as developer;
 import 'package:network_info_plus/network_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
@@ -26,16 +23,6 @@ import 'package:vibration/vibration.dart';
 enum Options { none, home, frame, vision, location, setting }
 
 int? isViewed;
-
-final NetworkInfo _networkInfo = NetworkInfo();
-bool _wifiStatus = false;
-
-String _networkInfoStatus = 'Unknown';
-String _WifiSSID = "";
-final Connectivity _connectivity = Connectivity();
-late StreamSubscription<ConnectivityResult> _connectivitySubscription;
-bool _gpsStatus = false;
-String _wifiNameStatus = '';
 
 main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,12 +53,14 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late final SharedPreferences _prefs;
-  Options option = Options.none;
-  var wifistat;
-  var gpsstat;
-  var internetstat;
+  final Connectivity _connectivity = Connectivity();
+  final NetworkInfo _networkInfo = NetworkInfo();
 
+  late final SharedPreferences _prefs;
+
+  Options option = Options.none;
+
+  ConnectivityResult _connectivityResult = ConnectivityResult.none;
   bool _isGpsEnabled = false;
   bool _isInternetConnected = false;
   String? _wifiName;
@@ -87,16 +76,11 @@ class _MyAppState extends State<MyApp> {
       await _checkGps();
       await _checkInternetConnection();
       await _checkWifiName();
+      await _checkConnectivityResult();
       setState(() {});
     });
 
     Vibration.cancel();
-  }
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
   }
 
   void initPrefs() async {
@@ -177,15 +161,18 @@ class _MyAppState extends State<MyApp> {
               label: 'Geolocation',
               labelStyle: const TextStyle(fontSize: 18.0),
               onTap: () {
-                setState(() {
-                  option = Options.location;
-                });
-                if (!gpsstat || !internetstat) {
+                if (!_isGpsEnabled || !_isInternetConnected) {
                   const snackBar = SnackBar(
                       content: Text(
                           'Make sure GPS and Internet Connection is enabled.'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+                  return;
                 }
+
+                setState(() {
+                  option = Options.location;
+                });
               },
             ),
             SpeedDialChild(
@@ -253,33 +240,42 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkWifiName() async {
-    String? wifiName;
-
-    try {
-      if (!kIsWeb && Platform.isIOS) {
-        // ignore: deprecated_member_use
-        var status = await _networkInfo.getLocationServiceAuthorization();
-        if (status == LocationAuthorizationStatus.notDetermined) {
-          // ignore: deprecated_member_use
-          status = await _networkInfo.requestLocationServiceAuthorization();
-        }
-        if (status == LocationAuthorizationStatus.authorizedAlways ||
-            status == LocationAuthorizationStatus.authorizedWhenInUse) {
-          wifiName = await _networkInfo.getWifiName();
-        } else {
-          wifiName = await _networkInfo.getWifiName();
-        }
-      } else {
-        wifiName = await _networkInfo.getWifiName();
-      }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi Name', error: e);
-      wifiName = 'Failed to get Wifi Name';
-    }
+    String? wifiName = await getWifiName();
 
     _wifiName = wifiName ?? _wifiName ?? 'null';
 
     _prefs.setString('wifistat', _wifiName!);
+  }
+
+  Future<void> _checkConnectivityResult() async {
+    ConnectivityResult? result;
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    try {
+      result = await _connectivity.checkConnectivity();
+    } on PlatformException catch (e) {
+      print(e.toString());
+    }
+
+    _connectivityResult = result ?? _connectivityResult;
+
+    _prefs.setInt('connectivityResult', _connectivityResult.index);
+
+    // if (Platform.isAndroid) {
+    //   print('Checking Android permissions');
+    //   var status = await Permission.location.status;
+    //   // Blocked?
+    //   if (status.isDenied || status.isRestricted) {
+    //     // Ask the user to unblock
+    //     if (await Permission.location.request().isGranted) {
+    //       // Either the permission was already granted before or the user just granted it.
+    //       print('Location permission granted');
+    //     } else {
+    //       print('Location permission not granted');
+    //     }
+    //   } else {
+    //     print('Permission already granted (previous execution?)');
+    //   }
+    // }
   }
 
   Widget task(Options option) {

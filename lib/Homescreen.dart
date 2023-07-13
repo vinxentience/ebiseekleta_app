@@ -1,7 +1,5 @@
-import 'dart:async';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:ebiseekleta_app/utils/globals.dart';
+import 'package:ebiseekleta_app/utils/network_util.dart';
 import 'package:flutter/material.dart';
 
 class Homepage extends StatefulWidget {
@@ -12,106 +10,109 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  ConnectivityResult connectivityStatus = ConnectivityResult.none;
-  String? wifiName;
-
-  bool isGPSenabled = false;
-  bool isInternetConnected = false;
-
-  bool? gpsstat, internetstat;
-  String? wifistat;
-
-  late Timer networkTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    networkTimer = Timer.periodic(
-        new Duration(milliseconds: 500), (_) async => getNetworkStatus());
-  }
-
-  void getNetworkStatus() {
-    isGPSenabled = Globals.prefs.getBool('gpsstat') ?? false;
-    isInternetConnected = Globals.prefs.getBool('internetstat') ?? false;
-    wifiName = Globals.prefs.getString('wifistat') ?? "null";
-    connectivityStatus = Globals.prefs.getInt('connectivityResult') == null
-        ? ConnectivityResult.none
-        : ConnectivityResult
-            .values[Globals.prefs.getInt('connectivityResult')!];
-    setState(() {});
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    networkTimer.cancel();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Image.asset(
-          'assets/logo.png',
-          scale: 1.5,
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        ListTile(
-          leading: (connectivityStatus == ConnectivityResult.wifi) ||
-                  (connectivityStatus == ConnectivityResult.mobile)
-              ? const Icon(
-                  Icons.check,
-                  color: Colors.green,
-                )
-              : const Icon(
-                  Icons.close,
-                  color: Colors.red,
-                ),
-          title: Text('Connection Status: ${connectivityStatus.toString()}'),
-        ),
-        ListTile(
-          leading: wifiName != "null"
-              ? const Icon(
-                  Icons.check,
-                  color: Colors.green,
-                )
-              : const Icon(
-                  Icons.close,
-                  color: Colors.red,
-                ),
-          title: Text(
-              "Connected To: ${wifiName == "null" ? "WIFI or GPS is disabled" : wifiName}"),
-        ),
-        ListTile(
-          leading: isGPSenabled
-              ? const Icon(
-                  Icons.check,
-                  color: Colors.green,
-                )
-              : const Icon(
-                  Icons.close,
-                  color: Colors.red,
-                ),
-          title: Text("GPS enabled: $isGPSenabled"),
-        ),
-        ListTile(
-          leading: isInternetConnected
-              ? const Icon(
-                  Icons.check,
-                  color: Colors.green,
-                )
-              : const Icon(
-                  Icons.close,
-                  color: Colors.red,
-                ),
-          title: Text("Internet Connection: $isInternetConnected"),
-        ),
-      ],
-    ));
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/logo.png',
+            scale: 1.5,
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          StreamBuilder<ConnectivityResult>(
+            stream: NetworkUtil.connectivityResultStream,
+            builder: (context, snapshot) {
+              final result = snapshot.data ?? 'Loading...';
+
+              return ListTile(
+                leading: (result == ConnectivityResult.wifi) ||
+                        (result == ConnectivityResult.mobile)
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      )
+                    : const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                      ),
+                title: Text('Connection Status: $result'),
+              );
+            },
+          ),
+          StreamBuilder<String?>(
+            stream: NetworkUtil.wifiNameStream,
+            builder: (context, snapshot) {
+              final wifiName = snapshot.data;
+
+              return ListTile(
+                leading: wifiName != null
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      )
+                    : const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                      ),
+                title: Text(snapshot.connectionState == ConnectionState.waiting
+                    ? 'Loading...'
+                    : "Connected To: ${wifiName ?? 'WIFI or GPS is disabled'}"),
+              );
+            },
+          ),
+          FutureBuilder<bool>(
+            future: NetworkUtil.isGpsEnabled(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return ListTile(
+                    leading: const CircularProgressIndicator(),
+                    title: Text("GPS enabled: Loading..."));
+              }
+
+              return StreamBuilder<bool>(
+                  initialData: snapshot.data ?? false,
+                  stream: NetworkUtil.isGpsEnabledStream,
+                  builder: (context, snapshot) {
+                    return ListTile(
+                      leading: snapshot.data == true
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.green,
+                            )
+                          : const Icon(
+                              Icons.close,
+                              color: Colors.red,
+                            ),
+                      title: Text("GPS enabled: ${snapshot.data == true}"),
+                    );
+                  });
+            },
+          ),
+          StreamBuilder<bool>(
+            stream: NetworkUtil.isInternetConnectedStream,
+            builder: (context, snapshot) {
+              final isInternetConnected = snapshot.data ?? false;
+              return ListTile(
+                leading: isInternetConnected
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      )
+                    : const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                      ),
+                title: Text("Internet Connection: $isInternetConnected"),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

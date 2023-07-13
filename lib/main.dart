@@ -8,6 +8,7 @@ import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/utils/globals.dart';
+import 'package:ebiseekleta_app/utils/network_util.dart';
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ main() async {
   isViewed = prefs.getInt('onBoard');
 
   Globals.init();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => InternetConnection(),
@@ -53,38 +55,14 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final Connectivity _connectivity = Connectivity();
-  final NetworkInfo _networkInfo = NetworkInfo();
-
-  late final SharedPreferences _prefs;
-
   Options option = Options.none;
-
-  ConnectivityResult _connectivityResult = ConnectivityResult.none;
-  bool _isGpsEnabled = false;
-  bool _isInternetConnected = false;
-  String? _wifiName;
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    initPrefs();
-
-    Timer.periodic(new Duration(milliseconds: 500), (timer) async {
-      await _checkGps();
-      await _checkInternetConnection();
-      await _checkWifiName();
-      await _checkConnectivityResult();
-      setState(() {});
-    });
-
     Vibration.cancel();
-  }
-
-  void initPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
   }
 
   @override
@@ -127,7 +105,10 @@ class _MyAppState extends State<MyApp> {
               label: 'Live View',
               labelStyle: const TextStyle(fontSize: 18.0),
               onTap: () async {
-                if (!_isGpsEnabled) {
+                final isGpsEnabled = await NetworkUtil.isGpsEnabled();
+                final wifiName = await NetworkUtil.getWifiName();
+
+                if (!isGpsEnabled) {
                   const snackBar = SnackBar(
                       content: Text('Make sure your mobile GPS is enabled.'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -135,11 +116,7 @@ class _MyAppState extends State<MyApp> {
                   return null;
                 }
 
-                if (_wifiName == null) {
-                  _wifiName = await getWifiName();
-                }
-
-                if (_wifiName != '"ESP32-CAM-EBISEEKLETA"') {
+                if (wifiName == null || wifiName != '"ESP32-CAM-EBISEEKLETA"') {
                   const snackBar = SnackBar(
                       content: Text(
                           'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA".'));
@@ -160,8 +137,12 @@ class _MyAppState extends State<MyApp> {
               foregroundColor: Colors.white,
               label: 'Geolocation',
               labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () {
-                if (!_isGpsEnabled || !_isInternetConnected) {
+              onTap: () async {
+                final isGpsEnabled = await NetworkUtil.isGpsEnabled();
+                final isInternetConnected =
+                    await NetworkUtil.isInternetConnected();
+
+                if (!isGpsEnabled || !isInternetConnected) {
                   const snackBar = SnackBar(
                       content: Text(
                           'Make sure GPS and Internet Connection is enabled.'));
@@ -193,111 +174,18 @@ class _MyAppState extends State<MyApp> {
         ),
       );
 
-  Future<void> _checkGps() async {
-    _isGpsEnabled = await Geolocator.isLocationServiceEnabled();
-    _prefs.setBool('gpsstat', _isGpsEnabled);
-  }
-
-  Future<void> _checkInternetConnection() async {
-    try {
-      var result = await InternetAddress.lookup('google.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        _isInternetConnected = true;
-      } else {
-        _isInternetConnected = false;
-      }
-    } on SocketException catch (_) {
-      _isInternetConnected = false;
-    }
-    _prefs.setBool('internetstat', _isInternetConnected);
-  }
-
-  Future<String?> getWifiName() async {
-    String? wifiName;
-
-    try {
-      if (!kIsWeb && Platform.isIOS) {
-        // ignore: deprecated_member_use
-        var status = await _networkInfo.getLocationServiceAuthorization();
-        if (status == LocationAuthorizationStatus.notDetermined) {
-          // ignore: deprecated_member_use
-          status = await _networkInfo.requestLocationServiceAuthorization();
-        }
-        if (status == LocationAuthorizationStatus.authorizedAlways ||
-            status == LocationAuthorizationStatus.authorizedWhenInUse) {
-          wifiName = await _networkInfo.getWifiName();
-        } else {
-          wifiName = await _networkInfo.getWifiName();
-        }
-      } else {
-        wifiName = await _networkInfo.getWifiName();
-      }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi Name', error: e);
-      wifiName = 'Failed to get Wifi Name';
-    }
-    return wifiName;
-  }
-
-  Future<void> _checkWifiName() async {
-    String? wifiName = await getWifiName();
-
-    _wifiName = wifiName ?? _wifiName ?? 'null';
-
-    _prefs.setString('wifistat', _wifiName!);
-  }
-
-  Future<void> _checkConnectivityResult() async {
-    ConnectivityResult? result;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      result = await _connectivity.checkConnectivity();
-    } on PlatformException catch (e) {
-      print(e.toString());
-    }
-
-    _connectivityResult = result ?? _connectivityResult;
-
-    _prefs.setInt('connectivityResult', _connectivityResult.index);
-
-    // if (Platform.isAndroid) {
-    //   print('Checking Android permissions');
-    //   var status = await Permission.location.status;
-    //   // Blocked?
-    //   if (status.isDenied || status.isRestricted) {
-    //     // Ask the user to unblock
-    //     if (await Permission.location.request().isGranted) {
-    //       // Either the permission was already granted before or the user just granted it.
-    //       print('Location permission granted');
-    //     } else {
-    //       print('Location permission not granted');
-    //     }
-    //   } else {
-    //     print('Permission already granted (previous execution?)');
-    //   }
-    // }
-  }
-
   Widget task(Options option) {
-    if (option == Options.frame) {
-      return const CamScreen();
+    switch (option) {
+      case Options.frame:
+        return const CamScreen();
+      case Options.setting:
+        return const SetttingScreen();
+      case Options.home:
+        return const Homepage();
+      case Options.location:
+        return const GeoLocation();
+      default:
+        return const Homepage();
     }
-    if (option == Options.setting) {
-      return const SetttingScreen();
-    }
-    if (option == Options.home) {
-      return const Homepage();
-    }
-    if (option == Options.location) {
-      return const GeoLocation();
-    }
-    return const Homepage();
   }
 }
-//   _ConnectWebSocket() {
-//     Future.delayed(const Duration(milliseconds: 100)).then((_) {
-//       Navigator.pushReplacement(context,
-//           MaterialPageRoute(builder: (BuildContext context) => CamScreen()));
-//     });
-//   }
-// }

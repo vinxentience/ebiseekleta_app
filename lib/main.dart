@@ -7,6 +7,7 @@ import 'package:ebiseekleta_app/Homescreen.dart';
 import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
+import 'package:ebiseekleta_app/network_status_provider.dart';
 import 'package:ebiseekleta_app/utils/globals.dart';
 import 'package:ebiseekleta_app/utils/network_util.dart';
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
@@ -34,8 +35,15 @@ main() async {
   Globals.init();
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => InternetConnection(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<NetworkStatusProvider>(
+          create: (context) => NetworkStatusProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => InternetConnection(),
+        ),
+      ],
       child: MaterialApp(
         themeMode: ThemeProvider().themeMode,
         theme: MyThemes.lightTheme,
@@ -104,16 +112,18 @@ class _MyAppState extends State<MyApp> {
               foregroundColor: Colors.white,
               label: 'Live View',
               labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () async {
-                final isGpsEnabled = await NetworkUtil.isGpsEnabled();
-                final wifiName = await NetworkUtil.getWifiName();
+              onTap: () {
+                final networkStatus = context.read<NetworkStatusProvider>();
+
+                final isGpsEnabled = networkStatus.isGpsEnabled;
+                final wifiName = networkStatus.wifiName;
 
                 if (!isGpsEnabled) {
                   const snackBar = SnackBar(
                       content: Text('Make sure your mobile GPS is enabled.'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                  return null;
+                  return;
                 }
 
                 if (wifiName == null || wifiName != '"ESP32-CAM-EBISEEKLETA"') {
@@ -122,7 +132,7 @@ class _MyAppState extends State<MyApp> {
                           'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA".'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                  return null;
+                  return;
                 }
 
                 setState(() {
@@ -137,10 +147,11 @@ class _MyAppState extends State<MyApp> {
               foregroundColor: Colors.white,
               label: 'Geolocation',
               labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () async {
-                final isGpsEnabled = await NetworkUtil.isGpsEnabled();
-                final isInternetConnected =
-                    await NetworkUtil.isInternetConnected();
+              onTap: () {
+                final networkStatus = context.read<NetworkStatusProvider>();
+
+                final isGpsEnabled = networkStatus.isGpsEnabled;
+                final isInternetConnected = networkStatus.isInternetConnected;
 
                 if (!isGpsEnabled || !isInternetConnected) {
                   const snackBar = SnackBar(

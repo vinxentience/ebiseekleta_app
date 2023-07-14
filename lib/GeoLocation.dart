@@ -1,9 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -70,6 +67,8 @@ class _GeoLocationState extends State<GeoLocation> {
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Fetching coordinates please wait...')));
           await _getCurrentPosition();
           _goToTheLake();
         },

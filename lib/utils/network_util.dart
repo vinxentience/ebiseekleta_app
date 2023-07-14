@@ -12,27 +12,6 @@ abstract class NetworkUtil {
   static final _networkInfo = NetworkInfo();
   static final _connectivity = Connectivity();
 
-  static Stream<ConnectivityResult> get connectivityResultStream =>
-      _connectivity.onConnectivityChanged;
-
-  static Stream<bool> get isGpsEnabledStream =>
-      Geolocator.getServiceStatusStream()
-          .map((event) => event == ServiceStatus.enabled);
-
-  static Stream<bool> get isInternetConnectedStream async* {
-    while (true) {
-      yield await isInternetConnected();
-      await Future.delayed(Duration(milliseconds: 500));
-    }
-  }
-
-  static Stream<String?> get wifiNameStream async* {
-    while (true) {
-      yield await getWifiName();
-      await Future.delayed(Duration(milliseconds: 500));
-    }
-  }
-
   static Future<bool> isGpsEnabled() async {
     return await Geolocator.isLocationServiceEnabled();
   }

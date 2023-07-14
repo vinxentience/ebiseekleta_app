@@ -1,7 +1,5 @@
-import 'dart:async';
-import 'dart:io';
 import 'dart:ui';
-import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'package:ebiseekleta_app/GeoLocation.dart';
 import 'package:ebiseekleta_app/Homescreen.dart';
 import 'package:ebiseekleta_app/OnboardingScreen.dart';
@@ -9,15 +7,12 @@ import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
 import 'package:ebiseekleta_app/utils/globals.dart';
-import 'package:ebiseekleta_app/utils/network_util.dart';
+
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'package:geolocator/geolocator.dart';
-import 'dart:developer' as developer;
-import 'package:network_info_plus/network_info_plus.dart';
+
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';

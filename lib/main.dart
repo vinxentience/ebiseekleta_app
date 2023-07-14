@@ -61,7 +61,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.leanBack);
     Vibration.cancel();
   }
 
@@ -112,7 +112,7 @@ class _MyAppState extends State<MyApp> {
                   const snackBar = SnackBar(
                       content: Text('Make sure your mobile GPS is enabled.'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
+                  option = Options.home;
                   return null;
                 }
 
@@ -121,7 +121,7 @@ class _MyAppState extends State<MyApp> {
                       content: Text(
                           'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA".'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
+                  option = Options.home;
                   return null;
                 }
 
@@ -147,7 +147,7 @@ class _MyAppState extends State<MyApp> {
                       content: Text(
                           'Make sure GPS and Internet Connection is enabled.'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
+                  option = Options.home;
                   return;
                 }
 

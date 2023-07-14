@@ -38,23 +38,25 @@ class Detector {
       useGpu: true,
     )
         .then((_) {
-      _resultsController.addStream(_channelStream
-          .where((event) => !_isDetecting)
-          .asyncMap((event) async {
-        _isDetecting = true;
-        final decodedImage = imageLib.decodeJpg(event)!;
+      _resultsController
+          .addStream(_channelStream
+              .where((event) => !_isDetecting)
+              .asyncMap((event) async {
+            _isDetecting = true;
+            final decodedImage = imageLib.decodeJpg(event)!;
 
-        _size ??= Size(
-          decodedImage.width.toDouble(),
-          decodedImage.height.toDouble(),
-        );
+            _size ??= Size(
+              decodedImage.width.toDouble(),
+              decodedImage.height.toDouble(),
+            );
 
-        final results = await _yoloOnFrame(decodedImage);
+            final results = await _yoloOnFrame(decodedImage);
 
-        _isDetecting = false;
+            _isDetecting = false;
 
-        return results;
-      }));
+            return results;
+          }))
+          .onError((error, stackTrace) => print("detection error"));
     });
 
     // _subscription = _channelStream.listen((event) async {

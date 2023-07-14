@@ -69,7 +69,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.leanBack);
     Vibration.cancel();
   }
 
@@ -158,7 +158,7 @@ class _MyAppState extends State<MyApp> {
                       content: Text(
                           'Make sure GPS and Internet Connection is enabled.'));
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
+                  option = Options.home;
                   return;
                 }
 

@@ -23,7 +23,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       img: 'assets/onboard-1.png',
       text: "EBISEEKLETA",
       desc:
-          "Sebuah metode belajar yang terbuktiampuh dalam meningkatkan produktifitas belajar, Learning by Doing",
+          "eBiSEEKleta is a cutting-edge mobile application designed to enhance cyclist safety through advanced technologies such as object detection, geolocation, notification, and fall detection. Whether you're a passionate cyclist or a casual rider, eBiSEEKleta aims to provide a seamless and secure cycling experience.",
       bg: Colors.white,
       button: Color(0xFF4756DF),
     ),

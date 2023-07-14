@@ -1,20 +1,19 @@
 import 'dart:async';
 
 import 'package:background_sms/background_sms.dart';
+import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
-import 'package:ebiseekleta_app/utils/globals.dart';
+
 import 'package:ebiseekleta_app/utils/painter.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_vision/flutter_vision.dart';
+
 import 'package:geolocator/geolocator.dart';
 
-import 'package:image/image.dart' as imageLib;
-import 'package:flutter/painting.dart' as painting;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sensors_plus/sensors_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vibration/vibration.dart';
+
 import 'package:web_socket_channel/io.dart';
 
 double x = 0, y = 0, z = 0;
@@ -105,99 +104,6 @@ class _CamScreenState extends State<CamScreen> {
     return true;
   }
 
-  // void initGyro() {
-  //   _streamSubscriptions.add(
-  //     userAccelerometerEvents.listen(
-  //       (UserAccelerometerEvent event) {
-  //         setState(() {
-  //           x = event.x;
-  //           y = event.y;
-  //           z = event.z;
-  //         });
-  //         print("x: $x y: $y z: $z");
-  //         if (((x > -0.1 && x < 0.1) &&
-  //             (y > -0.1 && y < 0.1) &&
-  //             (z > 0.1 && z < 0.1))) {
-  //           print("tilted");
-  //         } else {
-  //           print("not tilted");
-  //         }
-  //       },
-  //       onError: (e) {
-  //         showDialog(
-  //             context: context,
-  //             builder: (context) {
-  //               return const AlertDialog(
-  //                 title: Text("Sensor Not Found"),
-  //                 content: Text(
-  //                     "It seems that your device doesn't support Accelerometer Sensor"),
-  //               );
-  //             });
-  //       },
-  //       cancelOnError: true,
-  //     ),
-  //   );
-  // }
-
-  initGyro() {
-    _streamSubscriptions
-        .add(accelerometerEvents.listen((AccelerometerEvent event) async {
-      x = event.x;
-      y = event.y;
-      z = event.z;
-      //print("x: $x y: $y z: $z");
-      ;
-      if (true) {
-        if (((x > 7 && x < 11) && (y > -3 && y < 1) && (z > -2 && z < 2))) {
-          _start = 10;
-          isTitled = false;
-          // isMessageSent = false;
-          // Vibration.cancel();
-        } else {
-          isTitled = true;
-
-          //Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
-          if (!isFunctionExecuted) {
-            startTimer();
-            isFunctionExecuted = true;
-          }
-        }
-      }
-      setState(() {});
-    }));
-  }
-
-  // initGyro() {
-  //   // problem here. need to fix
-  //   accelerometerEvents.listen((AccelerometerEvent event) async {
-  //     x = event.x;
-  //     y = event.y;
-  //     z = event.z;
-  //     if (isDetecting) {
-  //       if (((x > 7 && x < 11) && (y > -3 && y < 1) && (z > -2 && z < 2))) {
-  //         _start = 10;
-  //         isTitled = false;
-  //         isMessageSent = false;
-  //         Vibration.cancel();
-  //       } else {
-  //         isTitled = true;
-  //         Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
-  //         if (!isFunctionExecuted) {
-  //           // startTimer();
-  //           isFunctionExecuted = true;
-  //           isMessageSent = true;
-  //         }
-  //       }
-  //     } else {
-  //       _start = 10;
-  //       isMessageSent = false;
-  //       Vibration.cancel();
-  //     }
-
-  //     setState(() {});
-  //   });
-  // }
-
   Future<bool?> get _supportCustomSim async =>
       await BackgroundSms.isSupportCustomSim;
 
@@ -282,56 +188,9 @@ class _CamScreenState extends State<CamScreen> {
     );
   }
 
-  // // timer sa natumba 10 seconds
-  // void startTimer() {
-  //   const oneSec = Duration(seconds: 1);
-  //   _timer = Timer.periodic(
-  //     oneSec,
-  //     (Timer timer) async {
-  //       if (_start == 0) {
-  //         if (!isMessageSent) {
-  //           await _getCurrentPosition();
-  //           print(
-  //               "${_currentPosition?.latitude} , ${_currentPosition?.longitude}");
-  //         } else {
-  //           print("yoww");
-  //           // if (timer.isActive) {
-  //           //   setState(() {
-  //           //     _start--;
-  //           //   });
-  //           // } else {
-  //           //   setState(() {
-  //           //     _start = 10;
-  //           //   });
-  //           //   startTimer();
-  //           // }
-  //         }
-  //         //   if (!isMessageSent) {
-  //         //     // await _getCurrentPosition();
-  //         //     // await _notifyCloseContact();
-  //         //     isMessageSent = true;
-  //         //   }
-  //         //   setState(() {
-  //         //     //timer.cancel();
-  //         //   });
-  //         // } else {
-  //         //   if (timer.isActive) {
-  //         //     setState(() {
-  //         //       _start--;
-  //         //     });
-  //         //   } else {
-  //         //     _start = 10;
-  //         //     startTimer();
-  //         //   }
-  //       }
-  //     },
-  //   );
-  // }
-
   @override
   void initState() {
     super.initState();
-    initGyro();
     channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
     _detector = Detector(channel);
   }
@@ -348,74 +207,97 @@ class _CamScreenState extends State<CamScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: RotatedBox(
-        quarterTurns: 1,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            StreamBuilder(
-              stream: _detector.image,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: const [
-                      Text(
-                        "Make sure that this device is connected to 'ESP32-CAM-EBISEEKLETA'",
-                      ),
-                      SizedBox(height: 20),
-                      SizedBox(height: 20),
-                      Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.blueAccent,
+    return ChangeNotifierProvider(
+      create: (context) => GyroProvider(),
+      child: Scaffold(
+        body: RotatedBox(
+          quarterTurns: 1,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              StreamBuilder(
+                stream: _detector.image,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: const [
+                        Text(
+                          "Make sure that this device is connected to 'ESP32-CAM-EBISEEKLETA'",
+                        ),
+                        SizedBox(height: 20),
+                        SizedBox(height: 20),
+                        Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blueAccent,
+                            ),
                           ),
                         ),
+                      ],
+                    );
+                  }
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      StreamBuilder(
+                          stream: _detector.results,
+                          builder: (context, snapshot_) {
+                            // print(snapshot_.data);
+                            return CustomPaint(
+                              foregroundPainter: BoundingBoxPainter(
+                                  snapshot_.data ?? [],
+                                  Size(_detector.size.width.toDouble(),
+                                      _detector.size.height.toDouble())),
+                              child: FittedBox(
+                                fit: BoxFit.fill,
+                                child: Image.memory(
+                                  snapshot.data!,
+                                  gaplessPlayback: true,
+                                ),
+                              ),
+                            );
+                          }),
+                      Consumer<GyroProvider>(
+                        builder: (context, gyro, child) {
+                          // print(
+                          //     'Consumer - ${gyro.isTilted}: ${gyro.countdown}');
+
+                          return gyro.isTilted
+                              ? Text("titled - warning : ${gyro.countdown} sec",
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 18.0,
+                                  ))
+                              : const Text(
+                                  "normal",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18.0,
+                                  ),
+                                );
+                        },
                       ),
+                      // isTitled
+                      //     ? Text("titled - warning : $_start sec",
+                      //         style: const TextStyle(
+                      //           color: Colors.red,
+                      //           fontSize: 18.0,
+                      //         ))
+                      //     : const Text(
+                      //         "normal",
+                      //         style: TextStyle(
+                      //           color: Colors.white,
+                      //           fontSize: 18.0,
+                      //         ),
+                      //       ),
                     ],
                   );
-                }
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    StreamBuilder(
-                        stream: _detector.results,
-                        builder: (context, snapshot_) {
-                          print(snapshot_.data);
-                          return CustomPaint(
-                            foregroundPainter: BoundingBoxPainter(
-                                snapshot_.data ?? [],
-                                Size(_detector.size.width.toDouble(),
-                                    _detector.size.height.toDouble())),
-                            child: FittedBox(
-                              fit: BoxFit.fill,
-                              child: Image.memory(
-                                snapshot.data!,
-                                gaplessPlayback: true,
-                              ),
-                            ),
-                          );
-                        }),
-                    isTitled
-                        ? Text("titled - warning : $_start sec",
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 18.0,
-                            ))
-                        : const Text(
-                            "normal",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18.0,
-                            ),
-                          ),
-                  ],
-                );
-              },
-            ),
-          ],
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -37,7 +37,7 @@ main() async {
           create: (context) => InternetConnection(),
         ),
         ChangeNotifierProvider(
-          create: (context) => PermissionProvider(),
+          create: (context) => PermissionProvider()..loadPermissions(),
         ),
       ],
       child: MaterialApp(

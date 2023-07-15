@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-class CheckPermissionView extends StatefulWidget {
-  const CheckPermissionView({super.key});
+class CheckPermissionScreen extends StatefulWidget {
+  const CheckPermissionScreen({super.key});
 
   @override
-  State<CheckPermissionView> createState() => _CheckPermissionViewState();
+  State<CheckPermissionScreen> createState() => _CheckPermissionScreenState();
 }
 
-class _CheckPermissionViewState extends State<CheckPermissionView> {
+class _CheckPermissionScreenState extends State<CheckPermissionScreen> {
   late PermissionProvider _permissionProvider;
 
   @override

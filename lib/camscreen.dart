@@ -36,6 +36,9 @@ class CamScreen extends StatefulWidget {
 }
 
 class _CamScreenState extends State<CamScreen> {
+  late final SharedPreferences _prefs;
+  late final SmsService _smsService;
+
   final double videoWidth = 640;
   final double videoHeight = 480;
 
@@ -193,22 +196,27 @@ class _CamScreenState extends State<CamScreen> {
   @override
   void initState() {
     super.initState();
+    initPrefs();
+
     channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
     _detector = Detector(channel);
     gyroProvider = GyroProvider();
 
-    // get contacts
-    SmsService smsService = SmsService(
-      recipients: [],
+    _smsService = SmsService(
+      recipients: _prefs.getStringList('phonenumber') ?? [],
     );
 
     gyroProvider.addListener(() {
       if (gyroProvider.exceededMaximumDuration) {
         // get current location
         // send message
-        smsService.send('help', location: null);
+        _smsService.send('help', location: null);
       }
     });
+  }
+
+  void initPrefs() async {
+    SharedPreferences _prefs = await SharedPreferences.getInstance();
   }
 
   @override

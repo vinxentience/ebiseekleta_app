@@ -30,45 +30,50 @@ class _CheckPermissionViewState extends State<CheckPermissionView> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PermissionProvider>(builder: (context, permission, _) {
-      return Column(
-        children: [
-          ListTile(
-            leading: Icon(Icons.location_on),
-            title: Text(
-              'Location Permission: ${permission.location.isGranted}',
-              style: TextStyle(fontSize: 20),
-            ),
-            trailing: Icon(
-              permission.location.isGranted ? Icons.check : Icons.close,
-              color: permission.location.isGranted ? Colors.green : Colors.red,
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.sms),
-            title: Text(
-              'Send SMS Permission: ${permission.sms.isGranted}',
-            ),
-            trailing: Icon(
-              permission.sms.isGranted ? Icons.check : Icons.close,
-              color: permission.sms.isGranted ? Colors.green : Colors.red,
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              permission.requestLocationPermission();
-            },
-            child: Text('Request Location Permission'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              permission.requestSendSmsPermission();
-            },
-            child: Text('Request Send SMS Permission'),
-          ),
-        ],
-      );
-    });
+    return Scaffold(
+      body: SafeArea(
+        child: Consumer<PermissionProvider>(builder: (context, permission, _) {
+          return Column(
+            children: [
+              ListTile(
+                leading: Icon(Icons.location_on),
+                title: Text(
+                  'Location Permission: ${permission.location.isGranted}',
+                  style: TextStyle(fontSize: 20),
+                ),
+                trailing: Icon(
+                  permission.location.isGranted ? Icons.check : Icons.close,
+                  color:
+                      permission.location.isGranted ? Colors.green : Colors.red,
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.sms),
+                title: Text(
+                  'Send SMS Permission: ${permission.sms.isGranted}',
+                ),
+                trailing: Icon(
+                  permission.sms.isGranted ? Icons.check : Icons.close,
+                  color: permission.sms.isGranted ? Colors.green : Colors.red,
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  permission.requestLocationPermission();
+                },
+                child: Text('Request Location Permission'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  permission.requestSendSmsPermission();
+                },
+                child: Text('Request Send SMS Permission'),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
   }
 
   void _onPermissionDenied() {

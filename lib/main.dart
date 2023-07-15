@@ -6,7 +6,6 @@ import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
-import 'package:ebiseekleta_app/utils/globals.dart';
 
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -26,8 +25,6 @@ main() async {
   DartPluginRegistrant.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   isViewed = prefs.getInt('onBoard');
-
-  Globals.init();
 
   runApp(
     MultiProvider(

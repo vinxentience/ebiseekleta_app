@@ -210,7 +210,7 @@ class _CamScreenState extends State<CamScreen> {
       if (gyroProvider.exceededMaximumDuration) {
         // get current location
         // send message
-        _smsService.send('help', location: null);
+        _smsService.send('<insert name of user> help', location: null);
       }
     });
   }

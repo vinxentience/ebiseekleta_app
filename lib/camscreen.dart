@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:background_sms/background_sms.dart';
 import 'package:ebiseekleta_app/gyro_provider.dart';
+import 'package:ebiseekleta_app/services/sms_service.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
 
 import 'package:ebiseekleta_app/utils/painter.dart';
@@ -35,6 +36,9 @@ class CamScreen extends StatefulWidget {
 }
 
 class _CamScreenState extends State<CamScreen> {
+  late final SharedPreferences _prefs;
+  late final SmsService _smsService;
+
   final double videoWidth = 640;
   final double videoHeight = 480;
 
@@ -57,6 +61,7 @@ class _CamScreenState extends State<CamScreen> {
   //gyro
   final _streamSubscriptions = <StreamSubscription<dynamic>>[];
   Timer? _timer;
+  late final GyroProvider gyroProvider;
 
   double getObjectPxPercentage(objHeight, objWidth, camHeight, camWidth) {
     double objectPixels = (objHeight * objWidth);
@@ -191,8 +196,29 @@ class _CamScreenState extends State<CamScreen> {
   @override
   void initState() {
     super.initState();
+
     channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
     _detector = Detector(channel);
+    gyroProvider = GyroProvider();
+
+    SharedPreferences.getInstance().then((value) {
+      _prefs = value;
+
+      _smsService = SmsService(
+        cyclist: _prefs.getString('username')!,
+        recipients: _prefs.getStringList('phonenumber')!,
+      );
+
+      gyroProvider.addListener(() {
+        print('changed');
+        if (gyroProvider.exceededMaximumDuration) {
+          print('>>>> send message');
+          // get current location
+          // send message
+          _smsService.send(location: 'Teyvat');
+        }
+      });
+    });
   }
 
   @override
@@ -203,12 +229,13 @@ class _CamScreenState extends State<CamScreen> {
     }
     await _detector.dispose();
     await channel.sink.close();
+    gyroProvider.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => GyroProvider(),
+    return ChangeNotifierProvider.value(
+      value: gyroProvider,
       child: Scaffold(
         body: RotatedBox(
           quarterTurns: 1,
@@ -279,19 +306,6 @@ class _CamScreenState extends State<CamScreen> {
                                 );
                         },
                       ),
-                      // isTitled
-                      //     ? Text("titled - warning : $_start sec",
-                      //         style: const TextStyle(
-                      //           color: Colors.red,
-                      //           fontSize: 18.0,
-                      //         ))
-                      //     : const Text(
-                      //         "normal",
-                      //         style: TextStyle(
-                      //           color: Colors.white,
-                      //           fontSize: 18.0,
-                      //         ),
-                      //       ),
                     ],
                   );
                 },

@@ -4,6 +4,7 @@ import 'package:background_sms/background_sms.dart';
 import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/services/sms_service.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
+import 'package:ebiseekleta_app/utils/location_util.dart';
 
 import 'package:ebiseekleta_app/utils/painter.dart';
 
@@ -209,13 +210,14 @@ class _CamScreenState extends State<CamScreen> {
         recipients: _prefs.getStringList('phonenumber')!,
       );
 
-      gyroProvider.addListener(() {
+      gyroProvider.addListener(() async {
         print('changed');
         if (gyroProvider.exceededMaximumDuration) {
           print('>>>> send message');
+          final String googleMapLink = await LocationUtil.getCurrentLocation();
           // get current location
           // send message
-          _smsService.send(location: 'Teyvat');
+          _smsService.send(location: googleMapLink);
         }
       });
     });

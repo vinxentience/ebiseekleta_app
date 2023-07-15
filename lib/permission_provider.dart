@@ -4,9 +4,14 @@ import 'package:permission_handler/permission_handler.dart';
 class PermissionProvider extends ChangeNotifier {
   PermissionStatus _location = PermissionStatus.denied;
   PermissionStatus _sms = PermissionStatus.denied;
+  String? _lastPermissionRequested;
+  PermissionStatus? _lastPermissionRequestedStatus;
 
   PermissionStatus get location => _location;
   PermissionStatus get sms => _sms;
+  String? get lastPermissionRequested => _lastPermissionRequested;
+  PermissionStatus? get lastPermissionRequestedStatus =>
+      _lastPermissionRequestedStatus;
 
   void loadPermissions() async {
     _location = await Permission.location.status;
@@ -14,19 +19,17 @@ class PermissionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void requestAllPermission() async {
-    _location = await Permission.location.request();
-    _sms = await Permission.sms.request();
-    notifyListeners();
-  }
-
   void requestLocationPermission() async {
     _location = await Permission.location.request();
+    _lastPermissionRequested = 'Location';
+    _lastPermissionRequestedStatus = _location;
     notifyListeners();
   }
 
   void requestSendSmsPermission() async {
     _sms = await Permission.sms.request();
+    _lastPermissionRequested = 'SMS';
+    _lastPermissionRequestedStatus = _sms;
     notifyListeners();
   }
 

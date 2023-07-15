@@ -44,10 +44,6 @@ class GyroProvider extends ChangeNotifier {
     }
     _isTilted = newIsTilted;
 
-    if (_exceededMaximumDuration) {
-      return;
-    }
-
     if (_isTilted) {
       print('gryo_provider: ${newIsTilted}');
 
@@ -64,6 +60,8 @@ class GyroProvider extends ChangeNotifier {
             _timer = null;
 
             _exceededMaximumDuration = true;
+            notifyListeners();
+
             _accelerometerSub!.cancel();
             _accelerometerSub = null;
           }

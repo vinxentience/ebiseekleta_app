@@ -5,6 +5,7 @@ import 'package:ebiseekleta_app/Homescreen.dart';
 import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
+import 'package:ebiseekleta_app/check_permission_screen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
 import 'package:ebiseekleta_app/permission_provider.dart';
 
@@ -70,116 +71,123 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: task(option),
-        floatingActionButton: SpeedDial(
-          //margin bottom
-          icon: Icons.menu, //icon on Floating action button
-          activeIcon: Icons.close, //icon when menu is expanded on button
-          backgroundColor: Colors.black12, //background color of button
-          foregroundColor: Colors.white, //font color, icon color in button
-          activeBackgroundColor:
-              Colors.deepPurpleAccent, //background color when menu is expanded
-          activeForegroundColor: Colors.white,
-          visible: true,
-          closeManually: false,
-          curve: Curves.bounceIn,
-          overlayColor: Colors.black,
-          overlayOpacity: 0.5,
-          buttonSize: const Size(56.0, 56.0),
-          children: [
-            SpeedDialChild(
-              //speed dial child
-              child: const Icon(Icons.settings),
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.white,
-              label: 'Settings',
-              labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () {
+  Widget build(BuildContext context) {
+    final isAllPermissionGranted =
+        context.read<PermissionProvider>().isAllPermissionGranted();
+    // dapat if onboarding is viewed na then dili sa mo check sa permission kay naa sab permission sa onboarding before mo proceed sa home screen
+    // wtf gi basa tas nag bisaya ha
+
+    return Scaffold(
+      body: isAllPermissionGranted ? task(option) : CheckPermissionScreen(),
+      floatingActionButton: SpeedDial(
+        //margin bottom
+        icon: Icons.menu, //icon on Floating action button
+        activeIcon: Icons.close, //icon when menu is expanded on button
+        backgroundColor: Colors.black12, //background color of button
+        foregroundColor: Colors.white, //font color, icon color in button
+        activeBackgroundColor:
+            Colors.deepPurpleAccent, //background color when menu is expanded
+        activeForegroundColor: Colors.white,
+        visible: true,
+        closeManually: false,
+        curve: Curves.bounceIn,
+        overlayColor: Colors.black,
+        overlayOpacity: 0.5,
+        buttonSize: const Size(56.0, 56.0),
+        children: [
+          SpeedDialChild(
+            //speed dial child
+            child: const Icon(Icons.settings),
+            backgroundColor: Colors.amber,
+            foregroundColor: Colors.white,
+            label: 'Settings',
+            labelStyle: const TextStyle(fontSize: 18.0),
+            onTap: () {
+              setState(() {
+                option = Options.setting;
+              });
+            },
+          ),
+          SpeedDialChild(
+            //speed dial child
+            child: const Icon(Icons.video_call),
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            label: 'Live View',
+            labelStyle: const TextStyle(fontSize: 18.0),
+            onTap: () {
+              final networkStatus = context.read<NetworkStatusProvider>();
+
+              final isGpsEnabled = networkStatus.isGpsEnabled;
+              final wifiName = networkStatus.wifiName;
+
+              if (!isGpsEnabled) {
+                const snackBar = SnackBar(
+                    content: Text('Make sure your mobile GPS is enabled.'));
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+                return;
+              }
+
+              if (wifiName == null || wifiName != '"ESP32-CAM-EBISEEKLETA"') {
+                const snackBar = SnackBar(
+                    content: Text(
+                        'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA".'));
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+                return;
+              }
+
+              setState(() {
+                option = Options.frame;
+              });
+            },
+          ),
+          SpeedDialChild(
+            //speed dial child
+            child: const Icon(Icons.gps_fixed),
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            label: 'Geolocation',
+            labelStyle: const TextStyle(fontSize: 18.0),
+            onTap: () {
+              final networkStatus = context.read<NetworkStatusProvider>();
+
+              final isGpsEnabled = networkStatus.isGpsEnabled;
+              final isInternetConnected = networkStatus.isInternetConnected;
+
+              if (!isGpsEnabled || !isInternetConnected) {
+                const snackBar = SnackBar(
+                    content: Text(
+                        'Make sure GPS and Internet Connection is enabled.'));
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                option = Options.home;
+                return;
+              }
+
+              setState(() {
+                option = Options.location;
+              });
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.home),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            label: 'Home',
+            labelStyle: const TextStyle(fontSize: 18.0),
+            onTap: () {
+              if (mounted) {
                 setState(() {
-                  option = Options.setting;
-                });
-              },
-            ),
-            SpeedDialChild(
-              //speed dial child
-              child: const Icon(Icons.video_call),
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              label: 'Live View',
-              labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () {
-                final networkStatus = context.read<NetworkStatusProvider>();
-
-                final isGpsEnabled = networkStatus.isGpsEnabled;
-                final wifiName = networkStatus.wifiName;
-
-                if (!isGpsEnabled) {
-                  const snackBar = SnackBar(
-                      content: Text('Make sure your mobile GPS is enabled.'));
-                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-                  return;
-                }
-
-                if (wifiName == null || wifiName != '"ESP32-CAM-EBISEEKLETA"') {
-                  const snackBar = SnackBar(
-                      content: Text(
-                          'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA".'));
-                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-                  return;
-                }
-
-                setState(() {
-                  option = Options.frame;
-                });
-              },
-            ),
-            SpeedDialChild(
-              //speed dial child
-              child: const Icon(Icons.gps_fixed),
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              label: 'Geolocation',
-              labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () {
-                final networkStatus = context.read<NetworkStatusProvider>();
-
-                final isGpsEnabled = networkStatus.isGpsEnabled;
-                final isInternetConnected = networkStatus.isInternetConnected;
-
-                if (!isGpsEnabled || !isInternetConnected) {
-                  const snackBar = SnackBar(
-                      content: Text(
-                          'Make sure GPS and Internet Connection is enabled.'));
-                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
                   option = Options.home;
-                  return;
-                }
-
-                setState(() {
-                  option = Options.location;
                 });
-              },
-            ),
-            SpeedDialChild(
-              child: const Icon(Icons.home),
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              label: 'Home',
-              labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () {
-                if (mounted) {
-                  setState(() {
-                    option = Options.home;
-                  });
-                }
-              },
-            ),
-          ],
-        ),
-      );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget task(Options option) {
     switch (option) {

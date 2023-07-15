@@ -5,7 +5,20 @@ class PermissionProvider extends ChangeNotifier {
   PermissionStatus _location = PermissionStatus.denied;
   PermissionStatus _sms = PermissionStatus.denied;
 
-  PermissionProvider() {}
+  PermissionStatus get location => _location;
+  PermissionStatus get sms => _sms;
+
+  void loadPermissions() async {
+    _location = await Permission.location.status;
+    _sms = await Permission.sms.status;
+    notifyListeners();
+  }
+
+  void requestAllPermission() async {
+    _location = await Permission.location.request();
+    _sms = await Permission.sms.request();
+    notifyListeners();
+  }
 
   void requestLocationPermission() async {
     _location = await Permission.location.request();
@@ -17,6 +30,7 @@ class PermissionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  PermissionStatus get location => _location;
-  PermissionStatus get sms => _sms;
+  bool isAllPermissionGranted() {
+    return _location.isGranted && _sms.isGranted;
+  }
 }

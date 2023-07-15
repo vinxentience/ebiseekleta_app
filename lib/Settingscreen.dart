@@ -1,9 +1,28 @@
-import 'package:ebiseekleta_app/utils/user_preference.dart';
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+import 'package:ebiseekleta_app/utils/theme_provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
-import 'package:permission_handler/permission_handler.dart';
+
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+String? wifiName,
+    wifiBSSID,
+    wifiIPv4,
+    wifiIPv6,
+    wifiGatewayIP,
+    wifiBroadcast,
+    wifiSubmask;
+String _networkInfoStatus = 'Unknown';
+String _WifiSSID = "";
+final Connectivity _connectivity = Connectivity();
+late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+bool _gpsStatus = false;
+String _wifiNameStatus = '';
 
 class SetttingScreen extends StatefulWidget {
   const SetttingScreen({super.key});
@@ -200,5 +219,20 @@ class _SetttingScreenState extends State<SetttingScreen> {
         ),
       ),
     );
+  }
+}
+
+class ChangeThemeButtonWidget extends StatelessWidget {
+  const ChangeThemeButtonWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    return Switch.adaptive(
+        value: themeProvider.isDarkMode,
+        onChanged: (value) {
+          final provider = Provider.of<ThemeProvider>(context, listen: false);
+          provider.toggleTheme(value);
+        });
   }
 }

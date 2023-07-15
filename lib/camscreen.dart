@@ -63,12 +63,9 @@ class _CamScreenState extends State<CamScreen> {
       );
 
       gyroProvider.addListener(() async {
-        print('changed');
         if (gyroProvider.exceededMaximumDuration) {
-          print('>>>> send message');
           final String googleMapLink = await LocationUtil.getCurrentLocation();
-          // get current location
-          // send message
+
           _smsService.send(location: googleMapLink);
         }
       });
@@ -122,7 +119,6 @@ class _CamScreenState extends State<CamScreen> {
                       StreamBuilder(
                           stream: _detector.results,
                           builder: (context, snapshot_) {
-                            // print(snapshot_.data);
                             return CustomPaint(
                               foregroundPainter: BoundingBoxPainter(
                                   snapshot_.data ?? [],
@@ -139,9 +135,6 @@ class _CamScreenState extends State<CamScreen> {
                           }),
                       Consumer<GyroProvider>(
                         builder: (context, gyro, child) {
-                          // print(
-                          //     'Consumer - ${gyro.isTilted}: ${gyro.countdown}');
-
                           return gyro.isTilted
                               ? Text("titled - warning : ${gyro.countdown} sec",
                                   style: const TextStyle(

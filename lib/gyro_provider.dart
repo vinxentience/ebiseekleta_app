@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 class GyroProvider extends ChangeNotifier {
-  // feature 1: tilt detection
-  // feature 2: if tilted start a counter / countdown
-  // if countdown == 0 "GETT HELP I FELL DOWN."
   double _x = 0;
   double _y = 0;
   double _z = 0;
@@ -45,16 +42,11 @@ class GyroProvider extends ChangeNotifier {
     _isTilted = newIsTilted;
 
     if (_isTilted) {
-      print('gryo_provider: ${newIsTilted}');
-
       if (_timer == null) {
-        print('timer started');
         _timer = Timer.periodic(Duration(seconds: 1), (timer) {
           _countdown--;
           notifyListeners();
           if (_countdown == 0) {
-            print('timer stopped');
-            print('HELLLLLLPPPP');
             _countdown = 10;
             _timer?.cancel();
             _timer = null;
@@ -66,13 +58,10 @@ class GyroProvider extends ChangeNotifier {
             _accelerometerSub = null;
           }
         });
-      } else {
-        print('timer already running');
       }
     }
 
     if (!isTilted) {
-      print('timer stopped due to not tilted');
       _countdown = 10;
       notifyListeners();
       _timer?.cancel();
@@ -87,20 +76,3 @@ class GyroProvider extends ChangeNotifier {
     _timer?.cancel();
   }
 }
-
-
-
-// class SmsService {
-//     Sms(Stream<boo> needHelp, ) {
-//         needHelp.subscribe((boo) -> async {
-//             if (boo) {
-//                 sendSms(await LocationUtil.getCurrentLocation());
-//             }
-//         });
-//     }
-// func sendSms(currentLocation) { send with current location }
-// }
-
-
-
-// Sms(GyroProvider.needHelpStream)

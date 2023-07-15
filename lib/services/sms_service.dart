@@ -1,9 +1,22 @@
 import 'package:background_sms/background_sms.dart';
 
 class SmsService {
-  void send(List<String> recipients, String message) {
+  final List<String> recipients;
+
+  SmsService({
+    required this.recipients,
+  });
+
+  void send(String message, {String? location}) {
+    if (location != null) {
+      message += '\n\nLocation: $location';
+    }
+
     for (var phoneNumber in recipients) {
-      BackgroundSms.sendMessage(phoneNumber: phoneNumber, message: message);
+      BackgroundSms.sendMessage(
+        phoneNumber: phoneNumber,
+        message: message,
+      );
     }
   }
 }

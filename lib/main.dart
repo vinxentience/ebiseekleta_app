@@ -6,6 +6,7 @@ import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
+import 'package:ebiseekleta_app/permission_provider.dart';
 
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,9 @@ main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => InternetConnection(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PermissionProvider(),
         ),
       ],
       child: MaterialApp(

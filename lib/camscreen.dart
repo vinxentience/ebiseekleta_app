@@ -196,27 +196,29 @@ class _CamScreenState extends State<CamScreen> {
   @override
   void initState() {
     super.initState();
-    initPrefs();
 
     channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
     _detector = Detector(channel);
     gyroProvider = GyroProvider();
 
-    _smsService = SmsService(
-      recipients: _prefs.getStringList('phonenumber') ?? [],
-    );
+    SharedPreferences.getInstance().then((value) {
+      _prefs = value;
 
-    gyroProvider.addListener(() {
-      if (gyroProvider.exceededMaximumDuration) {
-        // get current location
-        // send message
-        _smsService.send('<insert name of user> help', location: null);
-      }
+      _smsService = SmsService(
+        cyclist: _prefs.getString('username')!,
+        recipients: _prefs.getStringList('phonenumber')!,
+      );
+
+      gyroProvider.addListener(() {
+        print('changed');
+        if (gyroProvider.exceededMaximumDuration) {
+          print('>>>> send message');
+          // get current location
+          // send message
+          _smsService.send(location: 'Teyvat');
+        }
+      });
     });
-  }
-
-  void initPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
   }
 
   @override

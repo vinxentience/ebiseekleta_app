@@ -216,7 +216,7 @@ class _CamScreenState extends State<CamScreen> {
   }
 
   void initPrefs() async {
-    SharedPreferences _prefs = await SharedPreferences.getInstance();
+    _prefs = await SharedPreferences.getInstance();
   }
 
   @override

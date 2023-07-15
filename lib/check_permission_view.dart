@@ -72,42 +72,31 @@ class _CheckPermissionViewState extends State<CheckPermissionView> {
   }
 
   void _onPermissionDenied() {
-    if (_permissionProvider.location == PermissionStatus.denied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Location Permission Denied. Please try again.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
+    if (_permissionProvider.lastPermissionRequested == null) return;
 
-    if (_permissionProvider.location == PermissionStatus.permanentlyDenied) {
+    if (_permissionProvider.lastPermissionRequestedStatus ==
+        PermissionStatus.granted) return;
+
+    if (_permissionProvider.lastPermissionRequestedStatus ==
+        PermissionStatus.denied) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Location Permission Permanently Denied.'
-            ' Please go to Settings and enable the Location Permission.',
+            '${_permissionProvider.lastPermissionRequested} Permission Denied.'
+            ' Please try again.',
           ),
           duration: Duration(seconds: 1),
         ),
       );
     }
 
-    if (_permissionProvider.sms == PermissionStatus.denied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Send SMS Permission Denied. Please try again.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
-
-    if (_permissionProvider.sms == PermissionStatus.permanentlyDenied) {
+    if (_permissionProvider.lastPermissionRequestedStatus ==
+        PermissionStatus.permanentlyDenied) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Send SMS Permission Permanently Denied.'
-            ' Please go to Settings and enable the Send SMS Permission.',
+            '${_permissionProvider.lastPermissionRequested} Permission Permanently Denied.'
+            ' Please go to Settings and enable the ${_permissionProvider.lastPermissionRequested} Permission.',
           ),
           duration: Duration(seconds: 1),
         ),

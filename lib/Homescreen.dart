@@ -12,6 +12,12 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   @override
+  void initState() {
+    super.initState();
+    context.read<NetworkStatusProvider>().startListeningToChanges();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Center(
       child: Consumer<NetworkStatusProvider>(

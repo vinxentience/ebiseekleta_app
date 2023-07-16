@@ -8,6 +8,7 @@ import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/check_permission_screen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
 import 'package:ebiseekleta_app/permission_provider.dart';
+import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -20,46 +21,82 @@ import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision, location, setting }
 
-int? isViewed;
-
 main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  isViewed = prefs.getInt('onBoard');
+
+  final isOnBoardViewed = prefs.getBool('onBoard') ?? false;
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<NetworkStatusProvider>(
-          create: (context) => NetworkStatusProvider(),
+          create: (_) => NetworkStatusProvider(),
         ),
         ChangeNotifierProvider(
-          create: (context) => InternetConnection(),
+          create: (_) => InternetConnection(),
         ),
         ChangeNotifierProvider(
-          create: (context) => PermissionProvider()..loadPermissions(),
+          create: (_) => PermissionProvider()..loadPermissions(),
         ),
+        ChangeNotifierProvider(create: (_) => RedirectorProvider()),
       ],
-      child: MaterialApp(
-        themeMode: ThemeProvider().themeMode,
-        theme: MyThemes.lightTheme,
-        darkTheme: MyThemes.darkTheme,
-        debugShowCheckedModeBanner: false,
-        home: isViewed != 0 ? OnboardingScreen() : MyApp(),
-      ),
+      child: Builder(builder: (context) {
+        final redirector = context.read<RedirectorProvider>();
+        final permission = context.read<PermissionProvider>();
+
+        if (!isOnBoardViewed) {
+          redirector.changeScreen(Screen.onboard);
+        }
+
+        if (isOnBoardViewed && permission.isAllPermissionGranted()) {
+          redirector.changeScreen(Screen.main);
+        }
+
+        if (isOnBoardViewed && !permission.isAllPermissionGranted()) {
+          redirector.changeScreen(Screen.checkPermission);
+        }
+
+        return MainApp();
+      }),
     ),
   );
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MainApp extends StatelessWidget {
+  const MainApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      themeMode: ThemeProvider().themeMode,
+      theme: MyThemes.lightTheme,
+      darkTheme: MyThemes.darkTheme,
+      home: Consumer<RedirectorProvider>(
+        builder: (context, redirector, child) {
+          switch (redirector.screen) {
+            case Screen.onboard:
+              return OnboardingScreen();
+            case Screen.checkPermission:
+              return CheckPermissionScreen();
+            case Screen.main:
+              return MainScreen();
+          }
+        },
+      ),
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
+class MainScreen extends StatefulWidget {
+  const MainScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Options option = Options.none;
 
   @override
@@ -71,14 +108,22 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final isAllPermissionGranted =
-        context.read<PermissionProvider>().isAllPermissionGranted();
-    // dapat if onboarding is viewed na then dili sa mo check sa permission kay naa sab permission sa onboarding before mo proceed sa home screen
-    // wtf gi basa tas nag bisaya ha
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<PermissionProvider>().loadPermissions().then((_) {
+        if (!context.read<PermissionProvider>().isAllPermissionGranted()) {
+          context
+              .read<RedirectorProvider>()
+              .changeScreen(Screen.checkPermission);
+        }
+      });
+    }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: isAllPermissionGranted ? task(option) : CheckPermissionScreen(),
+      body: task(option),
       floatingActionButton: SpeedDial(
         //margin bottom
         icon: Icons.menu, //icon on Floating action button

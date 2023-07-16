@@ -16,6 +16,9 @@ class PermissionProvider extends ChangeNotifier {
   void loadPermissions() async {
     _location = await Permission.location.status;
     _sms = await Permission.sms.status;
+    print('permission loaded');
+    print('location: $_location');
+    print('sms: $_sms');
     notifyListeners();
   }
 
@@ -23,6 +26,8 @@ class PermissionProvider extends ChangeNotifier {
     _location = await Permission.location.request();
     _lastPermissionRequested = 'Location';
     _lastPermissionRequestedStatus = _location;
+    print('location: $_location');
+
     notifyListeners();
   }
 
@@ -30,6 +35,8 @@ class PermissionProvider extends ChangeNotifier {
     _sms = await Permission.sms.request();
     _lastPermissionRequested = 'SMS';
     _lastPermissionRequestedStatus = _sms;
+    print('location: $_location');
+
     notifyListeners();
   }
 

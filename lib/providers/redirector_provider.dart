@@ -7,7 +7,7 @@ class RedirectorProvider extends ChangeNotifier {
 
   Screen get screen => _screen;
 
-  set screen(Screen value) {
+  void changeScreen(Screen value) {
     _screen = value;
     notifyListeners();
   }

@@ -26,15 +26,19 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _permissionProvider.loadPermissions();
+      _permissionProvider.loadPermissions().then((_) {
+        if (_permissionProvider.isAllPermissionGranted()) {
+          context.read<RedirectorProvider>().changeToMainScreen();
+        }
+      });
     }
   }
 
   @override
   void dispose() {
     super.dispose();
-    context.read<PermissionProvider>().removeListener(_onPermissionChanged);
     WidgetsBinding.instance.removeObserver(this);
+    _permissionProvider.removeListener(_onPermissionChanged);
   }
 
   @override
@@ -87,7 +91,7 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
 
   void _onPermissionChanged() {
     if (_permissionProvider.isAllPermissionGranted()) {
-      context.read<RedirectorProvider>().changeScreen(Screen.main);
+      context.read<RedirectorProvider>().changeToMainScreen();
       // show snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

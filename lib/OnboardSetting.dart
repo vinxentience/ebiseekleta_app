@@ -179,11 +179,11 @@ class _OnboardSettingState extends State<OnboardSetting> {
                             .isAllPermissionGranted()) {
                           context
                               .read<RedirectorProvider>()
-                              .changeScreen(Screen.main);
+                              .changeToMainScreen();
                         } else {
                           context
                               .read<RedirectorProvider>()
-                              .changeScreen(Screen.checkPermission);
+                              .changeToCheckPermissionScreen();
                         }
                       }
                     },

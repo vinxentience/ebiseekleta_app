@@ -7,7 +7,7 @@ import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/check_permission_screen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
-import 'package:ebiseekleta_app/permission_provider.dart';
+import 'package:ebiseekleta_app/providers/permission_provider.dart';
 import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 
 import 'package:ebiseekleta_app/utils/theme_provider.dart';

@@ -1,4 +1,4 @@
-import 'package:ebiseekleta_app/permission_provider.dart';
+import 'package:ebiseekleta_app/providers/permission_provider.dart';
 import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -7,8 +7,18 @@ class RedirectorProvider extends ChangeNotifier {
 
   Screen get screen => _screen;
 
-  void changeScreen(Screen value) {
-    _screen = value;
+  void changeToOnboardScreen() {
+    _screen = Screen.onboard;
+    notifyListeners();
+  }
+
+  void changeToCheckPermissionScreen() {
+    _screen = Screen.checkPermission;
+    notifyListeners();
+  }
+
+  void changeToMainScreen() {
+    _screen = Screen.main;
     notifyListeners();
   }
 }

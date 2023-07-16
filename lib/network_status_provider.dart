@@ -11,9 +11,13 @@ class NetworkStatusProvider extends ChangeNotifier {
   ConnectivityResult _connectivityResult = ConnectivityResult.none;
   String? _wifiName;
 
-  late StreamSubscription _geolocatorSub;
-  late StreamSubscription _connectivitySub;
-  late StreamSubscription _wifiNameSub;
+  Stream<void> _periodicStream =
+      Stream.periodic(const Duration(seconds: 1), (value) => print(value))
+          .asBroadcastStream();
+
+  StreamSubscription? _geolocatorSub;
+  StreamSubscription? _connectivitySub;
+  StreamSubscription? _wifiNameSub;
 
   NetworkStatusProvider() {
     NetworkUtil.isGpsEnabled().then((value) {
@@ -35,33 +39,49 @@ class NetworkStatusProvider extends ChangeNotifier {
       _isInternetConnected = value;
       notifyListeners();
     });
+  }
 
+  bool get isGpsEnabled => _isGpsEnabled;
+  bool get isInternetConnected => _isInternetConnected;
+  ConnectivityResult get connectivityResult => _connectivityResult;
+  String? get wifiName => _wifiName;
+
+  void startListeningToChanges() async {
     _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((event) async {
-      _connectivityResult = event;
+        Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+    _geolocatorSub = Geolocator.getServiceStatusStream().listen(_onGpsChanged);
+    _wifiNameSub = _periodicStream.listen((_) => _updateWifiName());
+  }
 
-      if (_connectivityResult != ConnectivityResult.none) {
-        NetworkUtil.isInternetConnected().then((value) {
-          _isInternetConnected = value;
-          notifyListeners();
-        });
-        NetworkUtil.getWifiName().then((value) {
-          _wifiName = value;
-          notifyListeners();
-        });
-      }
+  Future<void> stopListeningToChanges() async {
+    await _connectivitySub?.cancel();
+    await _geolocatorSub?.cancel();
+    await _wifiNameSub?.cancel();
 
-      if (_connectivityResult == ConnectivityResult.none) {
-        _isInternetConnected = false;
-        _wifiName = null;
-      }
+    _connectivitySub = null;
+    _geolocatorSub = null;
+    _wifiNameSub = null;
+  }
 
+  void _onGpsChanged(event) async {
+    _isGpsEnabled = event == ServiceStatus.enabled;
+
+    NetworkUtil.isInternetConnected().then((value) {
+      _isInternetConnected = value;
+      notifyListeners();
+    });
+    NetworkUtil.getWifiName().then((value) {
+      _wifiName = value;
       notifyListeners();
     });
 
-    _geolocatorSub = Geolocator.getServiceStatusStream().listen((event) async {
-      _isGpsEnabled = event == ServiceStatus.enabled;
+    notifyListeners();
+  }
 
+  void _onConnectivityChanged(event) async {
+    _connectivityResult = event;
+
+    if (_connectivityResult != ConnectivityResult.none) {
       NetworkUtil.isInternetConnected().then((value) {
         _isInternetConnected = value;
         notifyListeners();
@@ -70,30 +90,26 @@ class NetworkStatusProvider extends ChangeNotifier {
         _wifiName = value;
         notifyListeners();
       });
+    }
 
-      notifyListeners();
-    });
+    if (_connectivityResult == ConnectivityResult.none) {
+      _isInternetConnected = false;
+      _wifiName = null;
+    }
 
-    // wifiName
-    _wifiNameSub =
-        Stream.periodic(const Duration(seconds: 1)).listen((event) async {
-      NetworkUtil.getWifiName().then((value) {
-        _wifiName = value;
-        notifyListeners();
-      });
-    });
+    notifyListeners();
   }
 
-  bool get isGpsEnabled => _isGpsEnabled;
-  bool get isInternetConnected => _isInternetConnected;
-  ConnectivityResult get connectivityResult => _connectivityResult;
-  String? get wifiName => _wifiName;
+  void _updateWifiName() {
+    NetworkUtil.getWifiName().then((value) {
+      _wifiName = value;
+      notifyListeners();
+    });
+  }
 
   @override
   void dispose() async {
     super.dispose();
-    await _connectivitySub.cancel();
-    await _geolocatorSub.cancel();
-    await _wifiNameSub.cancel();
+    await stopListeningToChanges();
   }
 }

@@ -18,6 +18,12 @@ class _HomepageState extends State<Homepage> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    context.read<NetworkStatusProvider>().stopListeningToChanges();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Center(
       child: Consumer<NetworkStatusProvider>(

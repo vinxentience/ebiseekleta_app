@@ -1,4 +1,5 @@
 import 'package:ebiseekleta_app/permission_provider.dart';
+import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -10,22 +11,30 @@ class CheckPermissionScreen extends StatefulWidget {
   State<CheckPermissionScreen> createState() => _CheckPermissionScreenState();
 }
 
-class _CheckPermissionScreenState extends State<CheckPermissionScreen> {
+class _CheckPermissionScreenState extends State<CheckPermissionScreen>
+    with WidgetsBindingObserver {
   late PermissionProvider _permissionProvider;
 
   @override
   void initState() {
     super.initState();
-
     _permissionProvider = context.read<PermissionProvider>()
-      ..addListener(_onPermissionDenied);
+      ..addListener(_onPermissionChanged);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _permissionProvider.loadPermissions();
+    }
   }
 
   @override
   void dispose() {
     super.dispose();
-
-    context.read<PermissionProvider>().removeListener(_onPermissionDenied);
+    context.read<PermissionProvider>().removeListener(_onPermissionChanged);
+    WidgetsBinding.instance.removeObserver(this);
   }
 
   @override
@@ -76,7 +85,18 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen> {
     );
   }
 
-  void _onPermissionDenied() {
+  void _onPermissionChanged() {
+    if (_permissionProvider.isAllPermissionGranted()) {
+      context.read<RedirectorProvider>().changeScreen(Screen.main);
+      // show snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('All Permissions Granted.'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+
     if (_permissionProvider.lastPermissionRequested == null) return;
 
     if (_permissionProvider.lastPermissionRequestedStatus ==

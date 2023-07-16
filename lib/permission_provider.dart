@@ -13,7 +13,7 @@ class PermissionProvider extends ChangeNotifier {
   PermissionStatus? get lastPermissionRequestedStatus =>
       _lastPermissionRequestedStatus;
 
-  void loadPermissions() async {
+  Future<void> loadPermissions() async {
     _location = await Permission.location.status;
     _sms = await Permission.sms.status;
     notifyListeners();

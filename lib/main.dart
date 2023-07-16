@@ -20,13 +20,13 @@ import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision, location, setting }
 
-int? isViewed;
+bool isViewed = false;
 
 main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  isViewed = prefs.getInt('onBoard');
+  isViewed = prefs.getBool('onBoard') ?? false;
 
   runApp(
     MultiProvider(
@@ -46,20 +46,30 @@ main() async {
         theme: MyThemes.lightTheme,
         darkTheme: MyThemes.darkTheme,
         debugShowCheckedModeBanner: false,
-        home: isViewed != 0 ? OnboardingScreen() : MyApp(),
+        home: !isViewed
+            ? OnboardingScreen()
+            : Consumer<PermissionProvider>(
+                builder: (context, permission, _) {
+                  if (permission.isAllPermissionGranted()) {
+                    return MainScreen();
+                  }
+
+                  return CheckPermissionScreen();
+                },
+              ),
       ),
     ),
   );
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MainScreen extends StatefulWidget {
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MainScreenState extends State<MainScreen> {
   Options option = Options.none;
 
   @override
@@ -72,13 +82,11 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final isAllPermissionGranted =
-        context.read<PermissionProvider>().isAllPermissionGranted();
     // dapat if onboarding is viewed na then dili sa mo check sa permission kay naa sab permission sa onboarding before mo proceed sa home screen
     // wtf gi basa tas nag bisaya ha
 
     return Scaffold(
-      body: isAllPermissionGranted ? task(option) : CheckPermissionScreen(),
+      body: task(option),
       floatingActionButton: SpeedDial(
         //margin bottom
         icon: Icons.menu, //icon on Floating action button

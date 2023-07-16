@@ -1,9 +1,7 @@
-import 'package:ebiseekleta_app/Homescreen.dart';
-import 'package:ebiseekleta_app/main.dart';
-import 'package:ebiseekleta_app/utils/user_preference.dart';
+import 'package:ebiseekleta_app/permission_provider.dart';
+import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardSetting extends StatefulWidget {
@@ -176,12 +174,17 @@ class _OnboardSettingState extends State<OnboardSetting> {
                         const snackBar =
                             SnackBar(content: Text('Information saved.'));
                         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                        Navigator.pushReplacement<void, void>(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (BuildContext context) => const MyApp(),
-                          ),
-                        );
+                        if (context
+                            .read<PermissionProvider>()
+                            .isAllPermissionGranted()) {
+                          context
+                              .read<RedirectorProvider>()
+                              .changeScreen(Screen.main);
+                        } else {
+                          context
+                              .read<RedirectorProvider>()
+                              .changeScreen(Screen.checkPermission);
+                        }
                       }
                     },
                     child: Text("Submit")),

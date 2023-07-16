@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:ebiseekleta_app/GeoLocation.dart';
 import 'package:ebiseekleta_app/Homescreen.dart';
-import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/check_permission_screen.dart';
@@ -16,7 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision, location, setting }
@@ -24,9 +22,6 @@ enum Options { none, home, frame, vision, location, setting }
 main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-
-  final isOnBoardViewed = prefs.getBool('onBoard') ?? false;
 
   runApp(
     MultiProvider(
@@ -42,24 +37,7 @@ main() async {
         ),
         ChangeNotifierProvider(create: (_) => RedirectorProvider()),
       ],
-      child: Builder(builder: (context) {
-        final redirector = context.read<RedirectorProvider>();
-        final permission = context.read<PermissionProvider>();
-
-        if (!isOnBoardViewed) {
-          redirector.changeScreen(Screen.onboard);
-        }
-
-        if (isOnBoardViewed && permission.isAllPermissionGranted()) {
-          redirector.changeScreen(Screen.main);
-        }
-
-        if (isOnBoardViewed && !permission.isAllPermissionGranted()) {
-          redirector.changeScreen(Screen.checkPermission);
-        }
-
-        return MainApp();
-      }),
+      child: MainApp(),
     ),
   );
 }
@@ -77,7 +55,7 @@ class MainApp extends StatelessWidget {
         builder: (context, redirector, child) {
           switch (redirector.screen) {
             case Screen.onboard:
-              return OnboardingScreen();
+              return CheckPermissionScreen();
             case Screen.checkPermission:
               return CheckPermissionScreen();
             case Screen.main:
@@ -112,9 +90,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       context.read<PermissionProvider>().loadPermissions().then((_) {
         if (!context.read<PermissionProvider>().isAllPermissionGranted()) {
-          context
-              .read<RedirectorProvider>()
-              .changeScreen(Screen.checkPermission);
+          context.read<RedirectorProvider>().changeToCheckPermissionScreen();
         }
       });
     }

@@ -179,7 +179,8 @@ class _OnboardSettingState extends State<OnboardSetting> {
                         Navigator.pushReplacement<void, void>(
                           context,
                           MaterialPageRoute<void>(
-                            builder: (BuildContext context) => const MyApp(),
+                            builder: (BuildContext context) =>
+                                const MainScreen(),
                           ),
                         );
                       }

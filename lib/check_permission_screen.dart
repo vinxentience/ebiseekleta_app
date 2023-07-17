@@ -28,6 +28,7 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
     if (state == AppLifecycleState.resumed) {
       _permissionProvider.loadPermissions().then((_) {
         if (_permissionProvider.isAllPermissionGranted()) {
+          _permissionProvider.removeListener(_onPermissionChanged);
           context.read<RedirectorProvider>().changeToMainScreen();
         }
       });
@@ -38,7 +39,6 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
   void dispose() {
     super.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    _permissionProvider.removeListener(_onPermissionChanged);
   }
 
   @override
@@ -82,6 +82,13 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
                 },
                 child: Text('Request Send SMS Permission'),
               ),
+              // go do settings
+              ElevatedButton(
+                onPressed: () {
+                  openAppSettings();
+                },
+                child: Text('Go to Settings'),
+              ),
             ],
           );
         }),
@@ -91,7 +98,6 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
 
   void _onPermissionChanged() {
     if (_permissionProvider.isAllPermissionGranted()) {
-      context.read<RedirectorProvider>().changeToMainScreen();
       // show snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -99,6 +105,8 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
           duration: Duration(seconds: 1),
         ),
       );
+      _permissionProvider.removeListener(_onPermissionChanged);
+      context.read<RedirectorProvider>().changeToMainScreen();
     }
 
     if (_permissionProvider.lastPermissionRequested == null) return;

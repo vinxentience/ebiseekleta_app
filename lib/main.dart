@@ -23,6 +23,12 @@ main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
 
+  final permissionProvider = PermissionProvider();
+
+  await permissionProvider.loadPermissions();
+
+  final isAllPermissionGranted = permissionProvider.isAllPermissionGranted();
+
   runApp(
     MultiProvider(
       providers: [
@@ -32,10 +38,13 @@ main() async {
         ChangeNotifierProvider(
           create: (_) => InternetConnection(),
         ),
+        ChangeNotifierProvider.value(value: permissionProvider),
         ChangeNotifierProvider(
-          create: (_) => PermissionProvider()..loadPermissions(),
+          create: (_) => RedirectorProvider(
+            initial:
+                isAllPermissionGranted ? Screen.main : Screen.checkPermission,
+          ),
         ),
-        ChangeNotifierProvider(create: (_) => RedirectorProvider()),
       ],
       child: MainApp(),
     ),

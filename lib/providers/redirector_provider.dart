@@ -3,7 +3,11 @@ import 'package:flutter/foundation.dart';
 enum Screen { onboard, checkPermission, main }
 
 class RedirectorProvider extends ChangeNotifier {
-  Screen _screen = Screen.onboard;
+  late Screen _screen;
+
+  RedirectorProvider({Screen initial = Screen.onboard}) {
+    _screen = initial;
+  }
 
   Screen get screen => _screen;
 

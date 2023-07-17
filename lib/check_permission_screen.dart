@@ -18,8 +18,7 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
   @override
   void initState() {
     super.initState();
-    _permissionProvider = context.read<PermissionProvider>()
-      ..addListener(_onPermissionChanged);
+    _permissionProvider = context.read<PermissionProvider>();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -28,7 +27,6 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
     if (state == AppLifecycleState.resumed) {
       _permissionProvider.loadPermissions().then((_) {
         if (_permissionProvider.isAllPermissionGranted()) {
-          _permissionProvider.removeListener(_onPermissionChanged);
           context.read<RedirectorProvider>().changeToMainScreen();
         }
       });
@@ -45,99 +43,80 @@ class _CheckPermissionScreenState extends State<CheckPermissionScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Consumer<PermissionProvider>(builder: (context, permission, _) {
-          return Column(
-            children: [
-              ListTile(
-                leading: Icon(Icons.location_on),
-                title: Text(
-                  'Location Permission: ${permission.location.isGranted}',
-                  style: TextStyle(fontSize: 20),
+        child: Consumer<PermissionProvider>(
+          builder: (context, permission, _) {
+            return Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.location_on),
+                  title: Text(
+                    'Location Permission: ${permission.location.isGranted}',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                  trailing: Icon(
+                    permission.location.isGranted ? Icons.check : Icons.close,
+                    color: permission.location.isGranted
+                        ? Colors.green
+                        : Colors.red,
+                  ),
                 ),
-                trailing: Icon(
-                  permission.location.isGranted ? Icons.check : Icons.close,
-                  color:
-                      permission.location.isGranted ? Colors.green : Colors.red,
+                ListTile(
+                  leading: Icon(Icons.sms),
+                  title: Text(
+                    'Send SMS Permission: ${permission.sms.isGranted}',
+                  ),
+                  trailing: Icon(
+                    permission.sms.isGranted ? Icons.check : Icons.close,
+                    color: permission.sms.isGranted ? Colors.green : Colors.red,
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: Icon(Icons.sms),
-                title: Text(
-                  'Send SMS Permission: ${permission.sms.isGranted}',
+                ElevatedButton(
+                  onPressed: () {
+                    permission.requestLocationPermission().then((_) {
+                      if (_permissionProvider.location.isDenied) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Location Permission Denied.'
+                              ' Please try again.',
+                            ),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                      if (_permissionProvider.location.isPermanentlyDenied) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Location Permission Permanently Denied.'
+                              ' Please enable it in app settings.',
+                            ),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                  child: Text('Request Location Permission'),
                 ),
-                trailing: Icon(
-                  permission.sms.isGranted ? Icons.check : Icons.close,
-                  color: permission.sms.isGranted ? Colors.green : Colors.red,
+                ElevatedButton(
+                  onPressed: () async {
+                    await permission.requestSendSmsPermission();
+                  },
+                  child: Text('Request Send SMS Permission'),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  permission.requestLocationPermission();
-                },
-                child: Text('Request Location Permission'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  permission.requestSendSmsPermission();
-                },
-                child: Text('Request Send SMS Permission'),
-              ),
-              // go do settings
-              ElevatedButton(
-                onPressed: () {
-                  openAppSettings();
-                },
-                child: Text('Go to Settings'),
-              ),
-            ],
-          );
-        }),
+                // go do settings
+                ElevatedButton(
+                  onPressed: () {
+                    openAppSettings();
+                  },
+                  child: Text('Go to Settings'),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
-  }
-
-  void _onPermissionChanged() {
-    if (_permissionProvider.isAllPermissionGranted()) {
-      // show snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('All Permissions Granted.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-      _permissionProvider.removeListener(_onPermissionChanged);
-      context.read<RedirectorProvider>().changeToMainScreen();
-    }
-
-    if (_permissionProvider.lastPermissionRequested == null) return;
-
-    if (_permissionProvider.lastPermissionRequestedStatus ==
-        PermissionStatus.granted) return;
-
-    if (_permissionProvider.lastPermissionRequestedStatus ==
-        PermissionStatus.denied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_permissionProvider.lastPermissionRequested} Permission Denied.'
-            ' Please try again.',
-          ),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
-
-    if (_permissionProvider.lastPermissionRequestedStatus ==
-        PermissionStatus.permanentlyDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_permissionProvider.lastPermissionRequested} Permission Permanently Denied.'
-            ' Please go to Settings and enable the ${_permissionProvider.lastPermissionRequested} Permission.',
-          ),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
   }
 }

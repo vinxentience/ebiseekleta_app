@@ -19,14 +19,14 @@ class PermissionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void requestLocationPermission() async {
+  Future<void> requestLocationPermission() async {
     _location = await Permission.location.request();
     _lastPermissionRequested = 'Location';
     _lastPermissionRequestedStatus = _location;
     notifyListeners();
   }
 
-  void requestSendSmsPermission() async {
+  Future<void> requestSendSmsPermission() async {
     _sms = await Permission.sms.request();
     _lastPermissionRequested = 'SMS';
     _lastPermissionRequestedStatus = _sms;

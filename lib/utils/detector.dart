@@ -1,33 +1,41 @@
 import 'dart:async';
 
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_vision/flutter_vision.dart';
-import 'package:web_socket_channel/io.dart';
-import 'package:image/image.dart' as imageLib;
 
 class Detector {
-  final IOWebSocketChannel channel;
+  late final FlutterVision _vision;
   late final Stream<Uint8List> _channelStream;
 
   final StreamController<List<Map<String, dynamic>>> _resultsController =
-      StreamController.broadcast(sync: true);
+      StreamController.broadcast();
 
-  late final FlutterVision _vision;
-  Size? _size;
+  ui.Size? _imageSize;
+
+  StreamSubscription<Uint8List>? _imageBytesSub;
+  StreamSubscription<Uint8List>? _imageSizeSub;
 
   bool _isDetecting = false;
 
-  Detector(this.channel) {
-    _channelStream = channel.stream
-        .map(
-          (event) => event as Uint8List,
-        )
-        .asBroadcastStream();
-
+  Detector(Stream<Uint8List> imageBytes) {
     _vision = FlutterVision();
+
+    _channelStream = imageBytes;
+
+    _imageSizeSub = _channelStream.listen((event) {
+      if (_imageSize == null) {
+        ui.decodeImageFromList(event, (result) {
+          _imageSize = ui.Size(
+            result.width.toDouble(),
+            result.height.toDouble(),
+          );
+        });
+        _imageSizeSub?.cancel();
+      }
+    });
 
     _vision
         .loadYoloModel(
@@ -38,63 +46,37 @@ class Detector {
       useGpu: true,
     )
         .then((_) {
-      _resultsController
-          .addStream(_channelStream
-              .where((event) => !_isDetecting)
-              .asyncMap((event) async {
-            _isDetecting = true;
-            final decodedImage = imageLib.decodeJpg(event)!;
+      _imageBytesSub = _channelStream.listen((event) async {
+        if (_isDetecting) return;
 
-            _size ??= Size(
-              decodedImage.width.toDouble(),
-              decodedImage.height.toDouble(),
-            );
+        _isDetecting = true;
 
-            final results = await _yoloOnFrame(decodedImage);
+        final results = await _yoloOnFrame(event);
+        _resultsController.add(results);
 
-            _isDetecting = false;
-
-            return results;
-          }))
-          .onError((error, stackTrace) => print("detection error"));
+        _isDetecting = false;
+      });
     });
-
-    // _subscription = _channelStream.listen((event) async {
-    //   if (_isDetecting) return;
-
-    //   _isDetecting = true;
-
-    //   _imageController.add(event);
-
-    //   final decodedImage = imageLib.decodeJpg(event)!;
-
-    //   _size ??= Size(
-    //     decodedImage.width.toDouble(),
-    //     decodedImage.height.toDouble(),
-    //   );
-    //   _resultsController.add(await _yoloOnFrame(decodedImage));
-
-    //   _isDetecting = false;
-    // });
   }
 
-  Future<List<Map<String, dynamic>>> _yoloOnFrame(imageLib.Image image) async {
+  Future<List<Map<String, dynamic>>> _yoloOnFrame(Uint8List bytes) async {
     final results = await _vision.yoloOnImage(
-      bytesList: imageLib.encodeJpg(image),
-      imageHeight: image.height,
-      imageWidth: image.width,
+      bytesList: bytes,
+      imageHeight: imageSize.height.toInt(),
+      imageWidth: imageSize.width.toInt(),
     );
 
     return results;
   }
 
   Stream<List<Map<String, dynamic>>> get results => _resultsController.stream;
-  Stream<Uint8List> get image => _channelStream;
-
-  Size get size => _size ?? Size(0, 0);
+  ui.Size get imageSize =>
+      _imageSize ?? ui.Size(0, 0); // todo: set default size
 
   Future<void> dispose() async {
-    await _channelStream.drain();
+    await _imageSizeSub?.cancel();
+    await _imageBytesSub?.cancel();
+    await _resultsController.close();
     await _vision.closeYoloModel();
   }
 }

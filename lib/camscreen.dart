@@ -1,3 +1,4 @@
+import 'package:ebiseekleta_app/external_camera_channel.dart';
 import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/services/sms_service.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
@@ -9,8 +10,6 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:web_socket_channel/io.dart';
 
 double x = 0, y = 0, z = 0;
 bool isTitled = false;
@@ -26,6 +25,7 @@ class CamScreen extends StatefulWidget {
 class _CamScreenState extends State<CamScreen> {
   late final SharedPreferences _prefs;
   late final SmsService _smsService;
+  final ExternalCameraChannel _extCamchannel = ExternalCameraChannel();
 
   final double videoWidth = 640;
   final double videoHeight = 480;
@@ -35,7 +35,6 @@ class _CamScreenState extends State<CamScreen> {
 
   late bool isLandscape;
 
-  late final IOWebSocketChannel channel;
   late final Detector _detector;
 
   late final GyroProvider gyroProvider;
@@ -50,8 +49,7 @@ class _CamScreenState extends State<CamScreen> {
   void initState() {
     super.initState();
 
-    channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
-    _detector = Detector(channel);
+    _detector = Detector(_extCamchannel.imageBytesStream);
     gyroProvider = GyroProvider();
 
     SharedPreferences.getInstance().then((value) {
@@ -76,7 +74,6 @@ class _CamScreenState extends State<CamScreen> {
   void dispose() async {
     super.dispose();
     await _detector.dispose();
-    await channel.sink.close();
     gyroProvider.dispose();
   }
 
@@ -91,7 +88,7 @@ class _CamScreenState extends State<CamScreen> {
             fit: StackFit.expand,
             children: [
               StreamBuilder(
-                stream: _detector.image,
+                stream: _extCamchannel.imageBytesStream,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return Column(
@@ -121,9 +118,10 @@ class _CamScreenState extends State<CamScreen> {
                           builder: (context, snapshot_) {
                             return CustomPaint(
                               foregroundPainter: BoundingBoxPainter(
-                                  snapshot_.data ?? [],
-                                  Size(_detector.size.width.toDouble(),
-                                      _detector.size.height.toDouble())),
+                                snapshot_.data ?? [],
+                                Size(_detector.imageSize.width,
+                                    _detector.imageSize.height),
+                              ),
                               child: FittedBox(
                                 fit: BoxFit.fill,
                                 child: Image.memory(

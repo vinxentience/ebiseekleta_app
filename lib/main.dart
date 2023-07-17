@@ -27,7 +27,9 @@ main() async {
 
   await permissionProvider.loadPermissions();
 
-  final isAllPermissionGranted = permissionProvider.isAllPermissionGranted();
+  final initialScreen = permissionProvider.isAllPermissionGranted()
+      ? Screen.main
+      : Screen.checkPermission;
 
   runApp(
     MultiProvider(
@@ -40,10 +42,7 @@ main() async {
         ),
         ChangeNotifierProvider.value(value: permissionProvider),
         ChangeNotifierProvider(
-          create: (_) => RedirectorProvider(
-            initial:
-                isAllPermissionGranted ? Screen.main : Screen.checkPermission,
-          ),
+          create: (_) => RedirectorProvider(initial: initialScreen),
         ),
       ],
       child: MainApp(),

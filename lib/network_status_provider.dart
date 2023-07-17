@@ -42,6 +42,23 @@ class NetworkStatusProvider extends ChangeNotifier {
   ConnectivityResult get connectivityResult => _connectivityResult;
   String? get wifiName => _wifiName;
 
+  Future<void> loadAllStatus() async {
+    NetworkUtil.isGpsEnabled().then((value) {
+      _isGpsEnabled = value;
+      notifyListeners();
+    });
+
+    NetworkUtil.getConnectivityResult().then((value) {
+      _connectivityResult = value;
+      notifyListeners();
+    });
+
+    NetworkUtil.getWifiName().then((value) {
+      _wifiName = value;
+      notifyListeners();
+    });
+  }
+
   void startListeningToChanges() async {
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);

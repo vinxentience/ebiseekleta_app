@@ -179,8 +179,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             foregroundColor: Colors.white,
             label: 'Geolocation',
             labelStyle: const TextStyle(fontSize: 18.0),
-            onTap: () {
+            onTap: () async {
               final networkStatus = context.read<NetworkStatusProvider>();
+
+              await networkStatus.loadAllStatus();
 
               final isGpsEnabled = networkStatus.isGpsEnabled;
               final isInternetConnected = networkStatus.isInternetConnected;

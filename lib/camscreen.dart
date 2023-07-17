@@ -1,4 +1,6 @@
-import 'package:ebiseekleta_app/external_camera_channel.dart';
+import 'dart:typed_data';
+
+import 'package:ebiseekleta_app/esp32_client.dart';
 import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/services/sms_service.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
@@ -25,7 +27,7 @@ class CamScreen extends StatefulWidget {
 class _CamScreenState extends State<CamScreen> {
   late final SharedPreferences _prefs;
   late final SmsService _smsService;
-  final ExternalCameraChannel _extCamchannel = ExternalCameraChannel();
+  final Esp32SocketClient _client = Esp32SocketClient.getInstance();
 
   final double videoWidth = 640;
   final double videoHeight = 480;
@@ -48,8 +50,11 @@ class _CamScreenState extends State<CamScreen> {
   @override
   void initState() {
     super.initState();
-
-    _detector = Detector(_extCamchannel.imageBytesStream);
+    _client.connect().then((value) {
+      _detector = Detector(
+        _client.channel.stream.cast<Uint8List>().asBroadcastStream(),
+      );
+    });
     gyroProvider = GyroProvider();
 
     SharedPreferences.getInstance().then((value) {
@@ -74,6 +79,7 @@ class _CamScreenState extends State<CamScreen> {
   void dispose() async {
     super.dispose();
     await _detector.dispose();
+    await _client.disconnect();
     gyroProvider.dispose();
   }
 
@@ -88,7 +94,9 @@ class _CamScreenState extends State<CamScreen> {
             fit: StackFit.expand,
             children: [
               StreamBuilder(
-                stream: _extCamchannel.imageBytesStream,
+                stream: _client.channel.stream
+                    .cast<Uint8List>()
+                    .asBroadcastStream(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return Column(

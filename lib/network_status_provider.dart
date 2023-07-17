@@ -64,8 +64,6 @@ class NetworkStatusProvider extends ChangeNotifier {
         Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
     _geolocatorSub = Geolocator.getServiceStatusStream().listen(_onGpsChanged);
 
-    StreamController<void> _streamController = StreamController<void>();
-    _wifiNameSub = _streamController.stream.listen((_) => _updateWifiName());
     _wifiNameSub = Stream.periodic(
       Duration(seconds: 1),
       (_) => print('listening to wifi name changes'),

@@ -104,8 +104,10 @@ class _MyAppState extends State<MyApp> {
               foregroundColor: Colors.white,
               label: 'Live View',
               labelStyle: const TextStyle(fontSize: 18.0),
-              onTap: () {
+              onTap: () async {
                 final networkStatus = context.read<NetworkStatusProvider>();
+
+                await networkStatus.loadAllStatus();
 
                 final isGpsEnabled = networkStatus.isGpsEnabled;
                 final wifiName = networkStatus.wifiName;

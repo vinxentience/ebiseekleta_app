@@ -11,10 +11,6 @@ class NetworkStatusProvider extends ChangeNotifier {
   ConnectivityResult _connectivityResult = ConnectivityResult.none;
   String? _wifiName;
 
-  Stream<void> _periodicStream =
-      Stream.periodic(const Duration(seconds: 1), (value) => print(value))
-          .asBroadcastStream();
-
   StreamSubscription? _geolocatorSub;
   StreamSubscription? _connectivitySub;
   StreamSubscription? _wifiNameSub;
@@ -50,7 +46,13 @@ class NetworkStatusProvider extends ChangeNotifier {
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
     _geolocatorSub = Geolocator.getServiceStatusStream().listen(_onGpsChanged);
-    _wifiNameSub = _periodicStream.listen((_) => _updateWifiName());
+
+    StreamController<void> _streamController = StreamController<void>();
+    _wifiNameSub = _streamController.stream.listen((_) => _updateWifiName());
+    _wifiNameSub = Stream.periodic(
+      Duration(seconds: 1),
+      (_) => print('listening to wifi name changes'),
+    ).listen((_) => _updateWifiName());
   }
 
   Future<void> stopListeningToChanges() async {

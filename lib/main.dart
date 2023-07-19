@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:ebiseekleta_app/GeoLocation.dart';
 import 'package:ebiseekleta_app/Homescreen.dart';
+import 'package:ebiseekleta_app/OnboardingScreen.dart';
 import 'package:ebiseekleta_app/Settingscreen.dart';
 import 'package:ebiseekleta_app/camscreen.dart';
 import 'package:ebiseekleta_app/check_permission_screen.dart';
@@ -10,11 +11,14 @@ import 'package:ebiseekleta_app/providers/permission_provider.dart';
 import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 
 enum Options { none, home, frame, vision, location, setting }
@@ -25,11 +29,21 @@ main() async {
 
   final permissionProvider = PermissionProvider();
 
+  final prefs = await SharedPreferences.getInstance();
+
+  final isViewed = prefs.getInt('onBoard') ?? 0;
+
   await permissionProvider.loadPermissions();
 
-  final initialScreen = permissionProvider.isAllPermissionGranted()
-      ? Screen.main
-      : Screen.checkPermission;
+  final initialScreen = isViewed == 0
+      ? Screen.onboard
+      : permissionProvider.isAllPermissionGranted()
+          ? Screen.main
+          : Screen.checkPermission;
+
+  // if (kDebugMode) {
+  //   debugPaintSizeEnabled = true;
+  // }
 
   runApp(
     MultiProvider(
@@ -63,7 +77,7 @@ class MainApp extends StatelessWidget {
         builder: (context, redirector, child) {
           switch (redirector.screen) {
             case Screen.onboard:
-              return CheckPermissionScreen();
+              return OnboardingScreen();
             case Screen.checkPermission:
               return CheckPermissionScreen();
             case Screen.main:

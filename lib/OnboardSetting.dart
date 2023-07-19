@@ -1,3 +1,5 @@
+import 'package:ebiseekleta_app/check_permission_screen.dart';
+import 'package:ebiseekleta_app/main.dart';
 import 'package:ebiseekleta_app/providers/permission_provider.dart';
 import 'package:ebiseekleta_app/providers/redirector_provider.dart';
 import 'package:flutter/material.dart';
@@ -171,20 +173,32 @@ class _OnboardSettingState extends State<OnboardSetting> {
                             'phonenumber', contactNums);
 
                         if (!mounted) return;
-                        const snackBar =
-                            SnackBar(content: Text('Information saved.'));
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
                         if (context
                             .read<PermissionProvider>()
                             .isAllPermissionGranted()) {
-                          context
-                              .read<RedirectorProvider>()
-                              .changeToMainScreen();
+                          // context
+                          //     .read<RedirectorProvider>()
+                          //     .changeToMainScreen();
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MainScreen()));
                         } else {
-                          context
-                              .read<RedirectorProvider>()
-                              .changeToCheckPermissionScreen();
+                          // context
+                          //     .read<RedirectorProvider>()
+                          //     .changeToCheckPermissionScreen();
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      CheckPermissionScreen()));
                         }
+                        final SharedPreferences _prefs =
+                            await SharedPreferences.getInstance();
+                        _prefs.setInt("onBoard", 1);
+                        const snackBar =
+                            SnackBar(content: Text('Information saved.'));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
                       }
                     },
                     child: Text("Submit")),

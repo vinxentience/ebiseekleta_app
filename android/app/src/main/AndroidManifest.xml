@@ -8,10 +8,13 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    
    <application
         android:label="ebiseekleta_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyAjohAJA4dXLg7wFtx6W5wXQNTbqTQ3JSs"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

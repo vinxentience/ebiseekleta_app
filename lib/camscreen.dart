@@ -1,3 +1,4 @@
+import 'package:blinking_text/blinking_text.dart';
 import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/services/sms_service.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
@@ -65,7 +66,6 @@ class _CamScreenState extends State<CamScreen> {
       gyroProvider.addListener(() async {
         if (gyroProvider.exceededMaximumDuration) {
           final String googleMapLink = await LocationUtil.getCurrentLocation();
-
           _smsService.send(location: googleMapLink);
         }
       });
@@ -75,9 +75,9 @@ class _CamScreenState extends State<CamScreen> {
   @override
   void dispose() async {
     super.dispose();
-    await _detector.dispose();
+    gyroProvider.stopListening();
+    await _detector.stopDetecting();
     await channel.sink.close();
-    gyroProvider.dispose();
   }
 
   @override
@@ -150,6 +150,32 @@ class _CamScreenState extends State<CamScreen> {
                                 );
                         },
                       ),
+                      Consumer<GyroProvider>(builder: (context, gyro, child) {
+                        return Align(
+                          alignment: Alignment.bottomCenter,
+                          child: IconButton(
+                            onPressed: () {
+                              gyro.reset();
+                            },
+                            icon: Icon(Icons.restart_alt),
+                            iconSize: 50,
+                          ),
+                        );
+                      }),
+                      Consumer<GyroProvider>(builder: (context, gyro, child) {
+                        return Align(
+                          alignment: Alignment.center,
+                          child: gyro.exceededMaximumDuration
+                              ? BlinkText(
+                                  'FALL DETECTED. SENDING SOS TO CLOSE CONTACT.',
+                                  style: TextStyle(
+                                      fontSize: 30, color: Colors.white),
+                                  beginColor: Colors.white,
+                                  endColor: Colors.yellow,
+                                  duration: Duration(seconds: 1))
+                              : Text(""),
+                        );
+                      }),
                     ],
                   );
                 },

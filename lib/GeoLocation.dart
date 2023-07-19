@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -17,7 +18,7 @@ class GeoLocation extends StatefulWidget {
 class _GeoLocationState extends State<GeoLocation> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
-
+  late final GyroProvider gyroProvider;
   CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(lat, long), //default
     zoom: 14.4746,

@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:vibration/vibration.dart';
 
 class GyroProvider extends ChangeNotifier {
   double _x = 0;
@@ -21,11 +24,15 @@ class GyroProvider extends ChangeNotifier {
   int get countdown => _countdown;
   bool get isTilted => _isTilted;
   bool get exceededMaximumDuration => _exceededMaximumDuration;
+  AudioPlayer? _player;
 
   void reset() {
     _exceededMaximumDuration = false;
     _countdown = 10;
     _accelerometerSub = accelerometerEvents.listen(_updateTiltStatus);
+    Vibration.cancel();
+    _player?.setReleaseMode(ReleaseMode.stop);
+    _player?.stop();
     notifyListeners();
   }
 
@@ -48,6 +55,8 @@ class GyroProvider extends ChangeNotifier {
           notifyListeners();
           if (_countdown == 0) {
             _countdown = 10;
+            Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
+            _play();
             _timer?.cancel();
             _timer = null;
 
@@ -69,10 +78,20 @@ class GyroProvider extends ChangeNotifier {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  void _play() {
+    _player?.dispose();
+    final player = _player = AudioPlayer();
+    player.play(AssetSource('danger.mp3'));
+    player.setVolume(1);
+    player.setReleaseMode(ReleaseMode.loop);
+  }
+
+  void stopListening() {
     _accelerometerSub?.cancel();
+    Vibration.cancel();
+    _player?.setReleaseMode(ReleaseMode.stop);
+    _player?.dispose();
     _timer?.cancel();
+    super.dispose();
   }
 }

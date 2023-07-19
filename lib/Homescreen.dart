@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +13,7 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   late NetworkStatusProvider _networkStatusProvider;
-
+  late final GyroProvider gyroProvider;
   @override
   void initState() {
     super.initState();

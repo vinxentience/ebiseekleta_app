@@ -16,7 +16,7 @@ class Detector {
       StreamController.broadcast(sync: true);
 
   late final FlutterVision _vision;
-  Size? _size;
+  Size _size = Size(480, 640); // image size of the esp32 camera
 
   bool _isDetecting = false;
 
@@ -38,25 +38,18 @@ class Detector {
       useGpu: true,
     )
         .then((_) {
-      _resultsController
-          .addStream(_channelStream
-              .where((event) => !_isDetecting)
-              .asyncMap((event) async {
-            _isDetecting = true;
-            final decodedImage = imageLib.decodeJpg(event)!;
+      _channelStream.listen((event) async {
+        if (_isDetecting) return;
 
-            _size ??= Size(
-              decodedImage.width.toDouble(),
-              decodedImage.height.toDouble(),
-            );
+        _isDetecting = true;
 
-            final results = await _yoloOnFrame(decodedImage);
+        final results = await _yoloOnFrame(event);
+        _resultsController.add(results);
 
-            _isDetecting = false;
+        print('results: $results');
 
-            return results;
-          }))
-          .onError((error, stackTrace) => print("detection error"));
+        _isDetecting = false;
+      });
     });
 
     // _subscription = _channelStream.listen((event) async {
@@ -78,23 +71,22 @@ class Detector {
     // });
   }
 
-  Future<List<Map<String, dynamic>>> _yoloOnFrame(imageLib.Image image) async {
+  Future<List<Map<String, dynamic>>> _yoloOnFrame(Uint8List imageBytes) async {
     final results = await _vision.yoloOnImage(
-      bytesList: imageLib.encodeJpg(image),
-      imageHeight: image.height,
-      imageWidth: image.width,
+      bytesList: imageBytes,
+      imageHeight: _size.height.toInt(),
+      imageWidth: _size.width.toInt(),
     );
-
     return results;
   }
 
   Stream<List<Map<String, dynamic>>> get results => _resultsController.stream;
   Stream<Uint8List> get image => _channelStream;
 
-  Size get size => _size ?? Size(0, 0);
+  Size get size => _size;
 
-  Future<void> dispose() async {
-    await _channelStream.drain();
-    await _vision.closeYoloModel();
+  Future<void> stopDetecting() async {
+    // await _channelStream.drain();
+    // await _vision.closeYoloModel();
   }
 }

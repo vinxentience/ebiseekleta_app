@@ -16,7 +16,7 @@ class Detector {
       StreamController.broadcast(sync: true);
 
   late final FlutterVision _vision;
-  Size _size = Size(480, 640); // image size of the esp32 camera
+  Size _size = Size(640, 480); // image size of the esp32 camera
 
   bool _isDetecting = false;
 
@@ -40,6 +40,10 @@ class Detector {
         .then((_) {
       _channelStream.listen((event) async {
         if (_isDetecting) return;
+
+        // decodeImageFromList(event, (result) {
+        //   print('${result.height} ${result.width}');
+        // });
 
         _isDetecting = true;
 

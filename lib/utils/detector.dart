@@ -9,7 +9,6 @@ import 'package:web_socket_channel/io.dart';
 import 'package:image/image.dart' as imageLib;
 
 class Detector {
-  final IOWebSocketChannel channel;
   late final Stream<Uint8List> _channelStream;
 
   final StreamController<List<Map<String, dynamic>>> _resultsController =
@@ -20,12 +19,8 @@ class Detector {
 
   bool _isDetecting = false;
 
-  Detector(this.channel) {
-    _channelStream = channel.stream
-        .map(
-          (event) => event as Uint8List,
-        )
-        .asBroadcastStream();
+  Detector(Stream<Uint8List> imageStream) {
+    _channelStream = imageStream;
 
     _vision = FlutterVision();
 
@@ -47,7 +42,7 @@ class Detector {
 
         _isDetecting = true;
 
-        final results = await _yoloOnFrame(event);
+        final results = await yoloOnFrame(event);
         _resultsController.add(results);
 
         print('results: $results');
@@ -75,13 +70,22 @@ class Detector {
     // });
   }
 
-  Future<List<Map<String, dynamic>>> _yoloOnFrame(Uint8List imageBytes) async {
+  Future<List<Map<String, dynamic>>> yoloOnFrame(Uint8List imageBytes) async {
     final results = await _vision.yoloOnImage(
       bytesList: imageBytes,
       imageHeight: _size.height.toInt(),
       imageWidth: _size.width.toInt(),
     );
     return results;
+  }
+
+  Future detect(Uint8List imageBytes) async {
+    if (_isDetecting) return;
+    _isDetecting = true;
+    var results = await yoloOnFrame(imageBytes);
+    _resultsController.add(results);
+    print(results);
+    _isDetecting = false;
   }
 
   Stream<List<Map<String, dynamic>>> get results => _resultsController.stream;

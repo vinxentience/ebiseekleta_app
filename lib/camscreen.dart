@@ -2,6 +2,7 @@ import 'package:blinking_text/blinking_text.dart';
 import 'package:ebiseekleta_app/gyro_provider.dart';
 import 'package:ebiseekleta_app/services/sms_service.dart';
 import 'package:ebiseekleta_app/utils/detector.dart';
+import 'package:ebiseekleta_app/utils/esp32_camera.dart';
 import 'package:ebiseekleta_app/utils/location_util.dart';
 
 import 'package:ebiseekleta_app/utils/painter.dart';
@@ -25,6 +26,7 @@ class CamScreen extends StatefulWidget {
 }
 
 class _CamScreenState extends State<CamScreen> {
+  final Esp32Camera _extCam = Esp32Camera();
   late final SharedPreferences _prefs;
   late final SmsService _smsService;
 
@@ -36,8 +38,10 @@ class _CamScreenState extends State<CamScreen> {
 
   late bool isLandscape;
 
-  late final IOWebSocketChannel channel;
   late final Detector _detector;
+
+  List<Map<String, dynamic>> results = [];
+  bool isDetecting = false;
 
   late final GyroProvider gyroProvider;
 
@@ -51,8 +55,7 @@ class _CamScreenState extends State<CamScreen> {
   void initState() {
     super.initState();
 
-    channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
-    _detector = Detector(channel);
+    _detector = Detector(_extCam.imageBytesStream);
     gyroProvider = GyroProvider();
 
     SharedPreferences.getInstance().then((value) {
@@ -70,6 +73,15 @@ class _CamScreenState extends State<CamScreen> {
         }
       });
     });
+
+    _extCam.addListener((onData) async {
+      if (isDetecting) return;
+
+      isDetecting = true;
+
+      await _detector.detect(onData);
+      isDetecting = false;
+    });
   }
 
   @override
@@ -77,7 +89,6 @@ class _CamScreenState extends State<CamScreen> {
     super.dispose();
     gyroProvider.stopListening();
     await _detector.stopDetecting();
-    await channel.sink.close();
   }
 
   @override
@@ -117,22 +128,23 @@ class _CamScreenState extends State<CamScreen> {
                     fit: StackFit.expand,
                     children: [
                       StreamBuilder(
-                          stream: _detector.results,
-                          builder: (context, snapshot_) {
-                            return CustomPaint(
-                              foregroundPainter: BoundingBoxPainter(
-                                  snapshot_.data ?? [],
-                                  Size(_detector.size.width.toDouble(),
-                                      _detector.size.height.toDouble())),
-                              child: FittedBox(
-                                fit: BoxFit.fill,
-                                child: Image.memory(
-                                  snapshot.data!,
-                                  gaplessPlayback: true,
-                                ),
+                        stream: _detector.results,
+                        builder: (context, snapshot_) {
+                          return CustomPaint(
+                            foregroundPainter: BoundingBoxPainter(
+                                snapshot_.data ?? [],
+                                Size(_detector.size.width.toDouble(),
+                                    _detector.size.height.toDouble())),
+                            child: FittedBox(
+                              fit: BoxFit.fill,
+                              child: Image.memory(
+                                snapshot.data!,
+                                gaplessPlayback: true,
                               ),
-                            );
-                          }),
+                            ),
+                          );
+                        },
+                      ),
                       Consumer<GyroProvider>(
                         builder: (context, gyro, child) {
                           return gyro.isTilted

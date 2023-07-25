@@ -9,6 +9,7 @@ import 'package:ebiseekleta_app/check_permission_screen.dart';
 import 'package:ebiseekleta_app/network_status_provider.dart';
 import 'package:ebiseekleta_app/providers/permission_provider.dart';
 import 'package:ebiseekleta_app/providers/redirector_provider.dart';
+import 'package:ebiseekleta_app/utils/globals.dart';
 
 import 'package:ebiseekleta_app/utils/theme_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -30,6 +31,8 @@ main() async {
   final permissionProvider = PermissionProvider();
 
   final prefs = await SharedPreferences.getInstance();
+
+  await Globals.init();
 
   final isViewed = prefs.getInt('onBoard') ?? 0;
 
@@ -70,6 +73,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       themeMode: ThemeProvider().themeMode,
       theme: MyThemes.lightTheme,
       darkTheme: MyThemes.darkTheme,

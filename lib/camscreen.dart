@@ -12,8 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:web_socket_channel/io.dart';
-
 double x = 0, y = 0, z = 0;
 bool isTitled = false;
 bool isTooClose = false;
@@ -45,16 +43,10 @@ class _CamScreenState extends State<CamScreen> {
 
   late final GyroProvider gyroProvider;
 
-  double getObjectPxPercentage(objHeight, objWidth, camHeight, camWidth) {
-    double objectPixels = (objHeight * objWidth);
-    final percentagePx = (objectPixels / (camHeight * camWidth)) * 100.0;
-    return percentagePx;
-  }
-
   @override
   void initState() {
     super.initState();
-
+    _extCam.reconnect();
     _detector = Detector(_extCam.imageBytesStream);
     gyroProvider = GyroProvider();
 
@@ -87,8 +79,8 @@ class _CamScreenState extends State<CamScreen> {
   @override
   void dispose() async {
     super.dispose();
+    _extCam.disconnect();
     gyroProvider.stopListening();
-    await _detector.stopDetecting();
   }
 
   @override
@@ -96,41 +88,41 @@ class _CamScreenState extends State<CamScreen> {
     return ChangeNotifierProvider.value(
       value: gyroProvider,
       child: Scaffold(
-        body: RotatedBox(
-          quarterTurns: 1,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              StreamBuilder(
-                stream: _detector.image,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: const [
-                        Text(
-                          "Make sure that this device is connected to 'ESP32-CAM-EBISEEKLETA'",
-                        ),
-                        SizedBox(height: 20),
-                        SizedBox(height: 20),
-                        Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.blueAccent,
-                            ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            StreamBuilder(
+              stream: _detector.image,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Text(
+                        "Make sure that this device is connected to 'ESP32-CAM-EBISEEKLETA'",
+                      ),
+                      SizedBox(height: 20),
+                      SizedBox(height: 20),
+                      Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.blueAccent,
                           ),
                         ),
-                      ],
-                    );
-                  }
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      StreamBuilder(
-                        stream: _detector.results,
-                        builder: (context, snapshot_) {
-                          return CustomPaint(
+                      ),
+                    ],
+                  );
+                }
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    StreamBuilder(
+                      stream: _detector.results,
+                      builder: (context, snapshot_) {
+                        return RotatedBox(
+                          quarterTurns: 1,
+                          child: CustomPaint(
                             foregroundPainter: BoundingBoxPainter(
                                 snapshot_.data ?? [],
                                 Size(_detector.size.width.toDouble(),
@@ -142,10 +134,13 @@ class _CamScreenState extends State<CamScreen> {
                                 gaplessPlayback: true,
                               ),
                             ),
-                          );
-                        },
-                      ),
-                      Consumer<GyroProvider>(
+                          ),
+                        );
+                      },
+                    ),
+                    RotatedBox(
+                      quarterTurns: 1,
+                      child: Consumer<GyroProvider>(
                         builder: (context, gyro, child) {
                           return gyro.isTilted
                               ? Text("titled - warning : ${gyro.countdown} sec",
@@ -162,8 +157,11 @@ class _CamScreenState extends State<CamScreen> {
                                 );
                         },
                       ),
-                      Consumer<GyroProvider>(builder: (context, gyro, child) {
-                        return Align(
+                    ),
+                    Consumer<GyroProvider>(builder: (context, gyro, child) {
+                      return Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Align(
                           alignment: Alignment.bottomCenter,
                           child: IconButton(
                             onPressed: () {
@@ -172,28 +170,32 @@ class _CamScreenState extends State<CamScreen> {
                             icon: Icon(Icons.restart_alt),
                             iconSize: 50,
                           ),
-                        );
-                      }),
-                      Consumer<GyroProvider>(builder: (context, gyro, child) {
-                        return Align(
+                        ),
+                      );
+                    }),
+                    Consumer<GyroProvider>(builder: (context, gyro, child) {
+                      return RotatedBox(
+                        quarterTurns: 1,
+                        child: Align(
                           alignment: Alignment.center,
                           child: gyro.exceededMaximumDuration
                               ? BlinkText(
-                                  'FALL DETECTED. SENDING SOS TO CLOSE CONTACT.',
+                                  'FALL DETECTED. \n SENDING SOS TO CLOSE CONTACT!',
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
                                       fontSize: 30, color: Colors.white),
                                   beginColor: Colors.white,
                                   endColor: Colors.yellow,
                                   duration: Duration(seconds: 1))
                               : Text(""),
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
+                        ),
+                      );
+                    }),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

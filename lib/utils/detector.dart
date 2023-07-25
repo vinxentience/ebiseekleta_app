@@ -3,10 +3,9 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:ebiseekleta_app/utils/globals.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_vision/flutter_vision.dart';
-import 'package:web_socket_channel/io.dart';
-import 'package:image/image.dart' as imageLib;
 
 class Detector {
   late final Stream<Uint8List> _channelStream;
@@ -14,7 +13,9 @@ class Detector {
   final StreamController<List<Map<String, dynamic>>> _resultsController =
       StreamController.broadcast(sync: true);
 
-  late final FlutterVision _vision;
+  //final FlutterVision _vision = Globals.vision;
+  final FlutterVision _vision = Globals.vision;
+
   Size _size = Size(640, 480); // image size of the esp32 camera
 
   bool _isDetecting = false;
@@ -22,69 +23,75 @@ class Detector {
   Detector(Stream<Uint8List> imageStream) {
     _channelStream = imageStream;
 
-    _vision = FlutterVision();
+    _channelStream.listen((event) async {
+      if (_isDetecting) return;
 
-    _vision
-        .loadYoloModel(
-      labels: 'assets/trafficlabels.txt',
-      modelPath: 'assets/traffic-yolov8n.tflite',
-      modelVersion: "yolov8",
-      numThreads: 1,
-      useGpu: true,
-    )
-        .then((_) {
-      _channelStream.listen((event) async {
-        if (_isDetecting) return;
+      _isDetecting = true;
 
-        // decodeImageFromList(event, (result) {
-        //   print('${result.height} ${result.width}');
-        // });
+      var results = await _yoloOnFrame(event);
+      print(results);
+      // results = results.map(mapLabel).where(filterResult).toList();
+      _resultsController.add(results);
 
-        _isDetecting = true;
-
-        final results = await yoloOnFrame(event);
-        _resultsController.add(results);
-
-        print('results: $results');
-
-        _isDetecting = false;
-      });
+      _isDetecting = false;
     });
-
-    // _subscription = _channelStream.listen((event) async {
-    //   if (_isDetecting) return;
-
-    //   _isDetecting = true;
-
-    //   _imageController.add(event);
-
-    //   final decodedImage = imageLib.decodeJpg(event)!;
-
-    //   _size ??= Size(
-    //     decodedImage.width.toDouble(),
-    //     decodedImage.height.toDouble(),
-    //   );
-    //   _resultsController.add(await _yoloOnFrame(decodedImage));
-
-    //   _isDetecting = false;
-    // });
   }
+  // _subscription = _channelStream.listen((event) async {
+  //   if (_isDetecting) return;
 
-  Future<List<Map<String, dynamic>>> yoloOnFrame(Uint8List imageBytes) async {
+  //   _isDetecting = true;
+
+  //   _imageController.add(event);
+
+  //   final decodedImage = imageLib.decodeJpg(event)!;
+
+  //   _size ??= Size(
+  //     decodedImage.width.toDouble(),
+  //     decodedImage.height.toDouble(),
+  //   );
+  //   _resultsController.add(await _yoloOnFrame(decodedImage));
+
+  //   _isDetecting = false;
+  // });
+
+  // Map<String, dynamic> mapLabel(Map<String, dynamic> e) {
+  //   final String label = e['tag'];
+
+  //   switch (label) {
+  //     case 'bicycle':
+  //     case 'car':
+  //     case 'motorcycle':
+  //     case 'bus':
+  //     case 'truck':
+  //       e['tag'] = 'vehicle';
+  //       break;
+
+  //     default:
+  //   }
+
+  //   return e;
+  // }
+
+  // bool filterResult(Map<String, dynamic> e) {
+  //   return e['tag'] == 'vehicle' || e['tag'] == 'person';
+  // }
+
+  Future<List<Map<String, dynamic>>> _yoloOnFrame(Uint8List imageBytes) async {
     final results = await _vision.yoloOnImage(
-      bytesList: imageBytes,
-      imageHeight: _size.height.toInt(),
-      imageWidth: _size.width.toInt(),
-    );
+        bytesList: imageBytes,
+        imageHeight: _size.height.toInt(),
+        imageWidth: _size.width.toInt(),
+        iouThreshold: 0.45,
+        confThreshold: 0.25,
+        classThreshold: 0.4);
     return results;
   }
 
   Future detect(Uint8List imageBytes) async {
     if (_isDetecting) return;
     _isDetecting = true;
-    var results = await yoloOnFrame(imageBytes);
+    var results = await _yoloOnFrame(imageBytes);
     _resultsController.add(results);
-    print(results);
     _isDetecting = false;
   }
 
@@ -92,9 +99,4 @@ class Detector {
   Stream<Uint8List> get image => _channelStream;
 
   Size get size => _size;
-
-  Future<void> stopDetecting() async {
-    // await _channelStream.drain();
-    // await _vision.closeYoloModel();
-  }
 }

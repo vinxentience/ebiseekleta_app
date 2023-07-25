@@ -5,6 +5,7 @@ import 'package:web_socket_channel/io.dart';
 class Esp32Camera {
   late IOWebSocketChannel _channel;
   late Stream<Uint8List> _imageBytesStream;
+  bool _isConnected = false;
 
   // singleton instance
   static final Esp32Camera _instance = Esp32Camera._internal();
@@ -18,6 +19,7 @@ class Esp32Camera {
           },
           onCancel: (subscription) => print("cancelling image bytes stream"),
         );
+    _isConnected = true;
   }
 
   // factory constructor
@@ -33,5 +35,22 @@ class Esp32Camera {
       print('listening');
       func(event);
     });
+  }
+
+  void disconnect() {
+    _channel.sink.close();
+    _isConnected = false;
+  }
+
+  void reconnect() {
+    if (_isConnected) return;
+    _channel = IOWebSocketChannel.connect('ws://192.168.4.1:8888');
+    _imageBytesStream = _channel.stream.cast<Uint8List>().asBroadcastStream(
+          onListen: (subscription) {
+            print("listening to image bytes stream");
+          },
+          onCancel: (subscription) => print("cancelling image bytes stream"),
+        );
+    _isConnected = true;
   }
 }

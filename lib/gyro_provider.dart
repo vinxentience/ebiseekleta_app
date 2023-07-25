@@ -11,7 +11,7 @@ class GyroProvider extends ChangeNotifier {
   double _y = 0;
   double _z = 0;
   bool _isTilted = false;
-  int _countdown = 10;
+  int _countdown = 30;
   Timer? _timer;
   bool _exceededMaximumDuration = false;
 
@@ -28,7 +28,7 @@ class GyroProvider extends ChangeNotifier {
 
   void reset() {
     _exceededMaximumDuration = false;
-    _countdown = 10;
+    _countdown = 30;
     _accelerometerSub = accelerometerEvents.listen(_updateTiltStatus);
     Vibration.cancel();
     _player?.setReleaseMode(ReleaseMode.stop);
@@ -54,7 +54,7 @@ class GyroProvider extends ChangeNotifier {
           _countdown--;
           notifyListeners();
           if (_countdown == 0) {
-            _countdown = 10;
+            _countdown = 30;
             Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
             _play();
             _timer?.cancel();
@@ -71,7 +71,7 @@ class GyroProvider extends ChangeNotifier {
     }
 
     if (!isTilted) {
-      _countdown = 10;
+      _countdown = 30;
       notifyListeners();
       _timer?.cancel();
       _timer = null;

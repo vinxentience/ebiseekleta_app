@@ -65,7 +65,10 @@ class _OnboardSettingState extends State<OnboardSetting> {
                     itemCount;
                   });
                 },
-                icon: Icon(Icons.delete)),
+                icon: Icon(
+                  Icons.delete,
+                  color: Colors.redAccent,
+                )),
           ],
         ),
       ],
@@ -108,7 +111,7 @@ class _OnboardSettingState extends State<OnboardSetting> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(labelText: "Enter your name."),
                   validator: (value) {
-                    if (value!.isEmpty ||
+                    if (!value!.isEmpty ||
                         RegExp(r'^[a-z A-Z]$').hasMatch(value)) {
                       return "Please enter correct value";
                     } else {
@@ -120,30 +123,42 @@ class _OnboardSettingState extends State<OnboardSetting> {
                   height: 10,
                 ),
                 TextFormField(
+                  textInputAction: TextInputAction.done,
                   controller: phoneNum,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(
-                      labelText: "Enter close contact number.",
-                      suffixIcon: IconButton(
-                          onPressed: () async {
-                            if (phoneNum.text.isNotEmpty &&
-                                RegExp(r'^(09|\+639)\d{9}$')
-                                    .hasMatch(phoneNum.text)) {
-                              await addPhoneNumber(phoneNum.text);
-                              setState(() {
-                                itemCount;
-                              });
-                              phoneNum.clear();
-                            }
-                          },
-                          icon: Icon(Icons.add))),
+                    labelText: "Enter close contact number.",
+                    suffixIcon: IconButton(
+                        onPressed: () async {
+                          if (phoneNum.text.isNotEmpty &&
+                              RegExp(r'^(09|\+639)\d{9}$')
+                                  .hasMatch(phoneNum.text)) {
+                            await addPhoneNumber(phoneNum.text);
+                            setState(() {
+                              itemCount;
+                            });
+                            phoneNum.clear();
+                          }
+                        },
+                        icon: Icon(Icons.add)),
+                  ),
                   validator: (value) {
-                    if (value!.isEmpty ||
+                    if (!value!.isEmpty &&
                         !RegExp(r'^(09|\+639)\d{9}$').hasMatch(value)) {
                       return "Please enter correct value";
                     } else {
                       return null;
                     }
+                  },
+                  keyboardType: TextInputType.phone,
+                  onFieldSubmitted: (value) async {
+                    if (value.isEmpty) return;
+
+                    await addPhoneNumber(phoneNum.text);
+                    phoneNum.clear();
+                    setState(() {
+                      itemCount;
+                    });
                   },
                 ),
                 const SizedBox(
@@ -161,47 +176,48 @@ class _OnboardSettingState extends State<OnboardSetting> {
                 const SizedBox(
                   height: 10,
                 ),
-                ElevatedButton(
-                    onPressed: () async {
-                      if (cyclistName.text.isNotEmpty ||
-                          RegExp(r'^[a-z A-Z]$').hasMatch(cyclistName.text)) {
-                        final SharedPreferences sharedPreferences =
-                            await SharedPreferences.getInstance();
-                        sharedPreferences.setString(
-                            'username', cyclistName.text);
-                        sharedPreferences.setStringList(
-                            'phonenumber', contactNums);
+                if (contactNums.isNotEmpty)
+                  ElevatedButton(
+                      onPressed: () async {
+                        if (cyclistName.text.isNotEmpty ||
+                            RegExp(r'^[a-z A-Z]$').hasMatch(cyclistName.text)) {
+                          final SharedPreferences sharedPreferences =
+                              await SharedPreferences.getInstance();
+                          sharedPreferences.setString(
+                              'username', cyclistName.text);
+                          sharedPreferences.setStringList(
+                              'phonenumber', contactNums);
 
-                        if (!mounted) return;
-                        if (context
-                            .read<PermissionProvider>()
-                            .isAllPermissionGranted()) {
-                          // context
-                          //     .read<RedirectorProvider>()
-                          //     .changeToMainScreen();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MainScreen()));
-                        } else {
-                          // context
-                          //     .read<RedirectorProvider>()
-                          //     .changeToCheckPermissionScreen();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      CheckPermissionScreen()));
+                          if (!mounted) return;
+                          if (context
+                              .read<PermissionProvider>()
+                              .isAllPermissionGranted()) {
+                            // context
+                            //     .read<RedirectorProvider>()
+                            //     .changeToMainScreen();
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MainScreen()));
+                          } else {
+                            // context
+                            //     .read<RedirectorProvider>()
+                            //     .changeToCheckPermissionScreen();
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        CheckPermissionScreen()));
+                          }
+                          final SharedPreferences _prefs =
+                              await SharedPreferences.getInstance();
+                          _prefs.setInt("onBoard", 1);
+                          const snackBar =
+                              SnackBar(content: Text('Information saved.'));
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
                         }
-                        final SharedPreferences _prefs =
-                            await SharedPreferences.getInstance();
-                        _prefs.setInt("onBoard", 1);
-                        const snackBar =
-                            SnackBar(content: Text('Information saved.'));
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                      }
-                    },
-                    child: Text("Submit")),
+                      },
+                      child: Text("Submit")),
               ],
             ),
           ),

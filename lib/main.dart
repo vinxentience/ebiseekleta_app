@@ -169,6 +169,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
               final isGpsEnabled = networkStatus.isGpsEnabled;
               final wifiName = networkStatus.wifiName;
+              final isInternetConnected = networkStatus.isInternetConnected;
 
               if (!isGpsEnabled) {
                 const snackBar = SnackBar(
@@ -178,10 +179,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 return;
               }
 
-              if (wifiName == null || wifiName != '"ESP32-CAM-EBISEEKLETA"') {
+              if (wifiName == null ||
+                  wifiName != '"ESP32-CAM-EBISEEKLETA"' ||
+                  isInternetConnected) {
                 const snackBar = SnackBar(
                     content: Text(
-                        'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA".'));
+                        'Make sure your mobile is connected to "ESP32-CAM-EBISEEKLETA" and mobile data is disabled.'));
                 ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
                 return;

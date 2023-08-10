@@ -57,7 +57,7 @@ class BoundingBoxPainter extends CustomPainter {
         player.stop();
       }
 
-      if (scaleDb < 0.9) {
+      if (scaleDb < 0.6) {
         if (!isPlayed) {
           _play();
           isPlayed = true;
@@ -68,7 +68,7 @@ class BoundingBoxPainter extends CustomPainter {
       }
 
       final textPainter = TextPainter(
-        text: scaleDb < 0.9
+        text: scaleDb < 0.6
             ? TextSpan(
                 text: "detected: ${output['tag']} | scale: $scale",
                 style: const TextStyle(

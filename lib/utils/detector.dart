@@ -29,8 +29,10 @@ class Detector {
       _isDetecting = true;
 
       var results = await _yoloOnFrame(event);
+
+      results = results.map(mapLabel).where(filterResult).toList();
       print(results);
-      // results = results.map(mapLabel).where(filterResult).toList();
+
       _resultsController.add(results);
 
       _isDetecting = false;
@@ -54,36 +56,40 @@ class Detector {
   //   _isDetecting = false;
   // });
 
-  // Map<String, dynamic> mapLabel(Map<String, dynamic> e) {
-  //   final String label = e['tag'];
+  Map<String, dynamic> mapLabel(Map<String, dynamic> e) {
+    final String label = e['tag'];
 
-  //   switch (label) {
-  //     case 'bicycle':
-  //     case 'car':
-  //     case 'motorcycle':
-  //     case 'bus':
-  //     case 'truck':
-  //       e['tag'] = 'vehicle';
-  //       break;
+    switch (label) {
+      case 'car':
+      case 'motorcycle':
+      case 'bus':
+      case 'truck':
+      case 'jeep':
+      case 'tricycle':
+        e['tag'] = 'vehicle';
+        break;
+      case 'bicycle':
+      case 'person':
+        e['tag'] = 'person';
+        break;
+      default:
+    }
 
-  //     default:
-  //   }
+    return e;
+  }
 
-  //   return e;
-  // }
-
-  // bool filterResult(Map<String, dynamic> e) {
-  //   return e['tag'] == 'vehicle' || e['tag'] == 'person';
-  // }
+  bool filterResult(Map<String, dynamic> e) {
+    return e['tag'] == 'vehicle' || e['tag'] == 'person';
+  }
 
   Future<List<Map<String, dynamic>>> _yoloOnFrame(Uint8List imageBytes) async {
     final results = await _vision.yoloOnImage(
         bytesList: imageBytes,
         imageHeight: _size.height.toInt(),
         imageWidth: _size.width.toInt(),
-        iouThreshold: 0.45,
-        confThreshold: 0.25,
-        classThreshold: 0.4);
+        iouThreshold: 0.7,
+        confThreshold: 0.7,
+        classThreshold: 0.7);
     return results;
   }
 

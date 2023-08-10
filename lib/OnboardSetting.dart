@@ -111,7 +111,7 @@ class _OnboardSettingState extends State<OnboardSetting> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(labelText: "Enter your name."),
                   validator: (value) {
-                    if (!value!.isEmpty ||
+                    if (!value!.isEmpty &&
                         RegExp(r'^[a-z A-Z]$').hasMatch(value)) {
                       return "Please enter correct value";
                     } else {

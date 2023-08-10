@@ -106,7 +106,10 @@ class _SetttingScreenState extends State<SetttingScreen> {
                     itemCount;
                   });
                 },
-                icon: Icon(Icons.delete)),
+                icon: Icon(
+                  Icons.delete,
+                  color: Colors.redAccent,
+                )),
           ],
         ),
       ],
@@ -149,30 +152,42 @@ class _SetttingScreenState extends State<SetttingScreen> {
                   height: 10,
                 ),
                 TextFormField(
+                  textInputAction: TextInputAction.done,
                   controller: phoneNum,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(
-                      labelText: "Enter close contact number.",
-                      suffixIcon: IconButton(
-                          onPressed: () async {
-                            if (phoneNum.text.isNotEmpty &&
-                                RegExp(r'^(09|\+639)\d{9}$')
-                                    .hasMatch(phoneNum.text)) {
-                              await addPhoneNumber(phoneNum.text);
-                              setState(() {
-                                itemCount;
-                              });
-                              phoneNum.clear();
-                            }
-                          },
-                          icon: Icon(Icons.add))),
+                    labelText: "Enter close contact number.",
+                    suffixIcon: IconButton(
+                        onPressed: () async {
+                          if (phoneNum.text.isNotEmpty &&
+                              RegExp(r'^(09|\+639)\d{9}$')
+                                  .hasMatch(phoneNum.text)) {
+                            await addPhoneNumber(phoneNum.text);
+                            setState(() {
+                              itemCount;
+                            });
+                            phoneNum.clear();
+                          }
+                        },
+                        icon: Icon(Icons.add)),
+                  ),
                   validator: (value) {
-                    if (value!.isEmpty ||
+                    if (!value!.isEmpty &&
                         !RegExp(r'^(09|\+639)\d{9}$').hasMatch(value)) {
                       return "Please enter correct value";
                     } else {
                       return null;
                     }
+                  },
+                  keyboardType: TextInputType.phone,
+                  onFieldSubmitted: (value) async {
+                    if (value.isEmpty) return;
+
+                    await addPhoneNumber(phoneNum.text);
+                    phoneNum.clear();
+                    setState(() {
+                      itemCount;
+                    });
                   },
                 ),
                 const SizedBox(
@@ -204,12 +219,6 @@ class _SetttingScreenState extends State<SetttingScreen> {
                         const snackBar =
                             SnackBar(content: Text('Information saved.'));
                         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                        // Navigator.pushReplacement<void, void>(
-                        //   context,
-                        //   MaterialPageRoute<void>(
-                        //     builder: (BuildContext context) => const MyApp(),
-                        //   ),
-                        // );
                       }
                     },
                     child: Text("Update")),

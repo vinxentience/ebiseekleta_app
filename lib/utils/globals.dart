@@ -7,8 +7,8 @@ abstract class Globals {
     vision = FlutterVision();
 
     await vision.loadYoloModel(
-      labels: 'assets/trafficlabels.txt',
-      modelPath: 'assets/traffic.tflite',
+      labels: 'assets/yolov8.txt',
+      modelPath: 'assets/yolov8.tflite',
       modelVersion: "yolov8",
       numThreads: 1,
       useGpu: false,
